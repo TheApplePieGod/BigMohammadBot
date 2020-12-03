@@ -1,0 +1,26 @@
+```ini
+[$help]
+- Pretty self explanitory
+
+[$new]
+- Shows what is new with Big Mohammad
+
+[$chainlength (iteration)]
+- Returns how many greetings were sent in the specified chain iteration
+- Call it without an argument to get data for the current chain
+
+[$breakers]
+- Lists the top 5 chain breakers
+
+[$keepers]
+- Lists the top 5 chain keepers
+
+[$chains]
+- Lists the top 5 longest chains so far
+
+[$me]
+- Lists personal statistics
+
+[$check (greeting)]
+- Returns if specified greeting has been used already this iteration
+```

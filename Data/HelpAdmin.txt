@@ -1,0 +1,25 @@
+```ini
+[$breakchain (@user)]
+- Causes mentioned user to break the hello chain
+
+[$resethello (#channel)]
+- Sets the new channel to be used for the chain
+
+[$mute (@user) (minutes)]
+- Prevents user from texting for specified minutes
+
+[$unmute (@user)]
+- Unmutes specified user
+
+[$unsuspend (@user)]
+- Unsuspends specified user from the hello chain
+
+[$purge (num)]
+- Deletes last num messages + this one
+
+[$blacklist (add/remove) (#channel)]
+- Adds/removes channel from the statistics blacklist
+
+[$blacklist list]
+- Lists all channels in the blacklist
+```

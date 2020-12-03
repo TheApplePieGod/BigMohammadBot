@@ -1,0 +1,19 @@
+```ini
+[$report]
+- Calculates and displays a report of user activity for the previous week
+
+[$reportnow]
+- Calculates and displays a report of user activity for the current week
+
+[$reportall]
+- Calculates and displays a report of user activity for all time
+
+[$stats]
+- Displays most statistics about activity data from last week
+
+[$statsnow]
+- Displays most statistics about activity data from this week
+
+[$statsall]
+- Displays most statistics about activity data from all time
+```

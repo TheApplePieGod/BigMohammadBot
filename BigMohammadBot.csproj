@@ -1,0 +1,48 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Modules\Test2.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Data\BotCredential.txt" />
+    <None Remove="Data\DbString.txt" />
+    <None Remove="Data\Help.txt" />
+    <None Remove="Data\HelpAdmin.txt" />
+    <None Remove="Data\HelpStats.txt" />
+    <None Remove="Data\New.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Data\BotCredential.txt" />
+    <EmbeddedResource Include="Data\Help.txt" />
+    <EmbeddedResource Include="Data\HelpStats.txt" />
+    <EmbeddedResource Include="Data\DbString.txt" />
+    <EmbeddedResource Include="Data\New.txt" />
+    <EmbeddedResource Include="Data\HelpAdmin.txt" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="AsyncEnumerable" Version="1.0.17" />
+    <PackageReference Include="Discord.Net" Version="2.1.1" />
+    <PackageReference Include="Discord.Net.Commands" Version="2.1.1" />
+    <PackageReference Include="Discord.Net.Core" Version="2.1.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="3.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="3.1.0" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="3.1.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+</Project>

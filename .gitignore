@@ -7,6 +7,17 @@
 *.obj
 *.elf
 
+bin/*
+.vs/*
+obj/*
+Properties/*
+ScaffoldDbo.ps1
+ScaffoldDboLocal.ps1
+Data/BotCredential.txt
+Data/DbString.txt
+*.user
+*.sln
+
 # Linker output
 *.ilk
 *.map
