@@ -38,7 +38,7 @@ namespace BigMohammadBot
         public static readonly ulong MohammadServerId = 619209478973292545;
 #endif
 
-        public static readonly string HelloChannelTopic = "This is where we chain hi. NO EMOJIS. NO IMAGES. NO GIFS. ABSOLUTELY NO ATTACHMENTS. ONE MESSAGE AT A TIME. IF YOU GO TWICE IN A ROW YOU LOSE. NO REPEATING GREETINGS. Editing messages is NOT allowed. If nobody messages for 12 hours the channel is deleted and we lose. If you break these rules the channel is deleted and you get the <@&" + ChainBreakerRoleId + "> role. This includes deleting a message and sending another. All languages are welcome. If you can justify it as a greeting it goes.";
+        //public static readonly string HelloChannelTopic = "This is where we chain hi. NO EMOJIS. NO IMAGES. NO GIFS. ABSOLUTELY NO ATTACHMENTS. ONE MESSAGE AT A TIME. IF YOU GO TWICE IN A ROW YOU LOSE. NO REPEATING GREETINGS. Editing messages is NOT allowed. If nobody messages for 12 hours the channel is deleted and we lose. If you break these rules the channel is deleted and you get the <@&" + ChainBreakerRoleId + "> role. This includes deleting a message and sending another. All languages are welcome. If you can justify it as a greeting it goes (discussions are not allowed).";
 
         public static async void LogActivity(int ActivityType, string Information, string ResultText, bool Success, int CallingUserId = 0)
         {

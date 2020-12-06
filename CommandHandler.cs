@@ -37,7 +37,40 @@ namespace BigMohammadBot
 
             _client.MessageReceived += HandleCommandAsync;
 
+            _client.UserJoined += OnUserJoined;
+
             _client.Ready += Ready;
+        }
+
+        public async Task OnUserJoined(SocketGuildUser User)
+        {
+            var dbContext = new Database.DatabaseContext();
+            var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+
+            if (AppState.JoinMuteMinutes > 0)
+            {
+                int UserId = await Globals.GetDbUserId(User);
+                var SuppressedUserRow = await dbContext.SupressedUsers.ToAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefault();
+
+                if (SuppressedUserRow == null)
+                {
+                    Database.SupressedUsers NewRow = new Database.SupressedUsers();
+                    NewRow.UserId = UserId;
+                    NewRow.TimeStarted = DateTime.Now;
+                    NewRow.MaxTimeSeconds = AppState.JoinMuteMinutes * 60;
+                    dbContext.SupressedUsers.Add(NewRow);
+                }
+                else
+                {
+                    SuppressedUserRow.TimeStarted = DateTime.Now;
+                    SuppressedUserRow.MaxTimeSeconds = AppState.JoinMuteMinutes * 60;
+                }
+
+                var SuppressRole = User.Guild.GetRole(Globals.SuppressTextRoleId);
+                await User.AddRoleAsync(SuppressRole);
+
+                await dbContext.SaveChangesAsync();
+            }
         }
 
         public async Task Ready()
@@ -349,7 +382,7 @@ namespace BigMohammadBot
                                     var NewChannel = await Context.Guild.CreateTextChannelAsync("hello-chain-" + State.HelloIteration, x =>
                                     {
                                         x.CategoryId = Globals.HelloCategoryId;
-                                        x.Topic = Globals.HelloChannelTopic;
+                                        x.Topic = State.HelloTopic;
                                     });
                                     State.HelloChannelId = await Globals.GetDbChannelId(NewChannel.Id, NewChannel.Name, 2);
                                     State.HelloDeleted = false;

@@ -1,4 +1,8 @@
 ```ini
+V2.1
+-----
+- Users are muted for 30 mins upon join
+
 V2.0
 -----
 - Added $breakers, $keepers, and $chains commands

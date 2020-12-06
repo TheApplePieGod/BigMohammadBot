@@ -54,6 +54,10 @@ namespace BigMohammadBot.Database
             {
                 entity.Property(e => e.HelloDeleted).HasDefaultValueSql("((1))");
 
+                entity.Property(e => e.HelloTopic).HasDefaultValueSql("('')");
+
+                entity.Property(e => e.JoinMuteMinutes).HasDefaultValueSql("((30))");
+
                 entity.Property(e => e.StatisticsPeriodStart).HasDefaultValueSql("(getdate())");
             });
 

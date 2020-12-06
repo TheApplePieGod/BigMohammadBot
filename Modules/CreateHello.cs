@@ -36,7 +36,7 @@ namespace BigMohammadBot.Modules
                         NewChannel = await Context.Guild.CreateTextChannelAsync("hello-chain-" + AppState.HelloIteration, x =>
                         {
                             x.CategoryId = Globals.HelloCategoryId;
-                            x.Topic = Globals.HelloChannelTopic;
+                            x.Topic = AppState.HelloTopic;
                         });
                         AppState.HelloChannelId = await Globals.GetDbChannelId(NewChannel.Id, NewChannel.Name, 2);
                         AppState.HelloDeleted = false;

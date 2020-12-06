@@ -22,5 +22,8 @@ namespace BigMohammadBot.Database
         public bool? HelloTimerNotified { get; set; }
         public int KeeperUserId { get; set; }
         public int SuspendedUserId { get; set; }
+        [Required]
+        public string HelloTopic { get; set; }
+        public int JoinMuteMinutes { get; set; }
     }
 }
