@@ -2,5 +2,7 @@
 - Update help
 - Change general to big mo's channel?
 - Multiple suspension?
+- Change 'blacklist' command
+- Automatically add hi chain to denylist
 
 // DB CHANGES

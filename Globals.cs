@@ -24,6 +24,7 @@ namespace BigMohammadBot
         public static readonly ulong SuppressTextRoleId = 385580495498641409;
         public static readonly ulong SuspendedRoleId = 783933452733906954;
         public static readonly ulong GeneralChannelId = 364208021171339267;
+        public static readonly ulong VotingChannelId = 799741564301737995;
         public static readonly ulong DefaultCategoryId = 364208021171339266;
         public static readonly ulong HelloCategoryId = 783933747711180800;
         public static readonly ulong MohammadServerId = 364208021171339265;
@@ -33,8 +34,9 @@ namespace BigMohammadBot
         public static readonly ulong SuppressTextRoleId = 757805274206568558;
         public static readonly ulong SuspendedRoleId = 783932971480252416;
         public static readonly ulong GeneralChannelId = 619209478973292547;
+        public static readonly ulong VotingChannelId = 799741511448657940;
         public static readonly ulong DefaultCategoryId = 619209478973292546;
-        public static readonly ulong HelloCategoryId = 783933902401830924;
+        public static readonly ulong HelloCategoryId = 785595959857774633;
         public static readonly ulong MohammadServerId = 619209478973292545;
 #endif
 
@@ -181,6 +183,7 @@ namespace BigMohammadBot
                         await GeneralChannel.SendMessageAsync("<@!" + dbUser.DiscordUserId.ToInt64() + "> has been awarded <@&" + ChainKeeperRoleId + ">");
 
                         AppState.KeeperUserId = AwardingId;
+                        dbUser.AmountKeeper++;
                     }
 
                     await dbContext.SaveChangesAsync();
