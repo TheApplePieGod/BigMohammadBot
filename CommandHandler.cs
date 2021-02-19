@@ -27,7 +27,8 @@ namespace BigMohammadBot
         private System.Threading.Timer GenericUpdateTimer;
         private System.Threading.Timer SparseUpdateTimer;
         private bool IsReady = false;
-
+        private ulong LastRPSUser = 0;
+        private int LastRPSInput = 0; // 0: rock, 1: paper, 2: scissors
         public CommandHandler(DiscordSocketClient client)
         {
             _client = client;
@@ -409,6 +410,17 @@ namespace BigMohammadBot
             catch (Exception e) { Globals.LogActivity(1, "UpdateHelloChain", e.Message, false); }
         }
 
+        ulong PickWinner(ulong id1, ulong id2, int input1, int input2)
+        {
+            if (input1 == input2)
+                return 1;
+            // 0 rock 1 paper 2 scissors
+            if (input1 == 0 && input2 == 1 || input1 == 1 && input2 == 2 || input1 == 2 && input2 == 0)
+                return id2;
+            else
+                return id1;
+        }
+
         public async Task HandleCommandAsync(SocketMessage s)
         {
             if (IsReady)
@@ -509,27 +521,94 @@ namespace BigMohammadBot
                         int UserId = await Globals.GetDbUserId(msg.Author);
                         try
                         {
-                            if (msg.Author.Id != Globals.BeefBossId && !msg.Author.IsBot)
+                            if (msg.Content.Trim() == "rock" || msg.Content.Trim() == "scissors" || msg.Content.Trim() == "paper")
                             {
-                                await context.Channel.SendMessageAsync("Noted.");
-                                var Beef = await _client.Rest.GetUserAsync(Globals.BeefBossId);
-                                await Beef.SendMessageAsync("<@!" + msg.Author.Id + ">" + " at " + msg.Timestamp + " said: " + msg);
+                                ulong winner = 0;
+                                int currentInput = 0;
+                                switch (msg.Content.Trim())
+                                {
+                                    case "rock":
+                                        if (LastRPSUser == 0)
+                                        {
+                                            LastRPSUser = msg.Author.Id;
+                                            LastRPSInput = 0;
+                                        }
+                                        else
+                                        {
+                                            winner = PickWinner(msg.Author.Id, LastRPSUser, 0, LastRPSInput);
+                                            currentInput = 0;
+                                        }
+                                        break;
+                                    case "paper":
+                                        if (LastRPSUser == 0)
+                                        {
+                                            LastRPSUser = msg.Author.Id;
+                                            LastRPSInput = 1;
+                                        }
+                                        else
+                                        {
+                                            winner = PickWinner(msg.Author.Id, LastRPSUser, 1, LastRPSInput);
+                                            currentInput = 1;
+                                        }
+                                        break;
+                                    case "scissors":
+                                        if (LastRPSUser == 0)
+                                        {
+                                            LastRPSUser = msg.Author.Id;
+                                            LastRPSInput = 2;
+                                        }
+                                        else
+                                        {
+                                            winner = PickWinner(msg.Author.Id, LastRPSUser, 2, LastRPSInput);
+                                            currentInput = 2;
+                                        }
+                                        break;
+                                }
+
+                                if (winner != 0)
+                                {
+                                    var User1 = await _client.Rest.GetUserAsync(msg.Author.Id);
+                                    var User2 = await _client.Rest.GetUserAsync(LastRPSUser);
+
+                                    if (winner != 1)
+                                    {
+                                        await User1.SendMessageAsync("Between you and <@!" + LastRPSUser + ">, <@!" + winner + "> has won.");
+                                        await User2.SendMessageAsync("Between you and <@!" + msg.Author.Id + ">, <@!" + winner + "> has won.");
+                                    }
+                                    else // tie
+                                    {
+                                        await User1.SendMessageAsync("Between you and <@!" + LastRPSUser + ">, you tied.");
+                                        await User2.SendMessageAsync("Between you and <@!" + msg.Author.Id + ">, you tied.");
+                                    }
+
+                                    LastRPSInput = 0;
+                                    LastRPSUser = 0;
+                                }
                             }
                             else
                             {
-                                string Message = msg.ToString();
-                                if (Message.Contains("$reply "))
+                                if (msg.Author.Id != Globals.BeefBossId && !msg.Author.IsBot)
                                 {
-                                    string SendingMessage = Message.Substring(7, Message.Length - 7);
-
-                                    var DMChannel = msg.Channel as SocketDMChannel;
-                                    var LastMessages = await DMChannel.GetMessagesAsync(2).Flatten().ToList();
-                                    if (LastMessages[1].Content.Split("<")[1][0] == '@')
+                                    await context.Channel.SendMessageAsync("Noted.");
+                                    var Beef = await _client.Rest.GetUserAsync(Globals.BeefBossId);
+                                    await Beef.SendMessageAsync("<@!" + msg.Author.Id + ">" + " at " + msg.Timestamp + " said: " + msg);
+                                }
+                                else
+                                {
+                                    string Message = msg.ToString();
+                                    if (Message.Contains("$reply "))
                                     {
-                                        var SendingUser = await _client.Rest.GetGuildUserAsync(Globals.MohammadServerId, ulong.Parse(LastMessages[1].Content.Split("!")[1].Split(">")[0]));
-                                        await SendingUser.SendMessageAsync(SendingMessage);
-                                        var Beef = await _client.Rest.GetUserAsync(Globals.BeefBossId);
-                                        await Beef.SendMessageAsync("Replied");
+                                        string SendingMessage = Message.Substring(7, Message.Length - 7);
+
+                                        var DMChannel = msg.Channel as SocketDMChannel;
+                                        var LastMessages = await DMChannel.GetMessagesAsync(2).Flatten().ToList();
+                                        if (LastMessages[1].Content.Split("<")[1][0] == '@')
+                                        {
+                                            var SendingUser = await _client.Rest.GetGuildUserAsync(Globals.MohammadServerId, ulong.Parse(LastMessages[1].Content.Split("!")[1].Split(">")[0]));
+                                            await SendingUser.SendMessageAsync(SendingMessage);
+                                            var Beef = await _client.Rest.GetUserAsync(Globals.BeefBossId);
+                                            await Beef.SendMessageAsync("Replied");
+                                        }
                                     }
                                 }
                             }

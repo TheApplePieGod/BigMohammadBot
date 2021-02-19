@@ -1,7 +1,7 @@
 ```ini
 V2.1
 -----
-- Users are muted for 30 mins upon join
+- Users are muted for 24 hrs upon join
 
 V2.0
 -----
