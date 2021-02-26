@@ -23,9 +23,11 @@ namespace BigMohammadBot.Modules
 
         private async Task HandleStreamCreated(ulong id, AudioInStream stream)
         {
+            var User = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, id);
+            if (User.IsBot)
+                return;
+
             Console.WriteLine("Stream was created for " + id);
-            //await Task.Delay(1000 * 30);
-            //await connectedChannel.DisconnectAsync();
 
             //using (FileStream outputFileStream = new FileStream("Recordings/" + id + ".txt", FileMode.Create))
             //{
@@ -34,31 +36,38 @@ namespace BigMohammadBot.Modules
             //}
 
             ffmpegProcesses[id] = CreateFfmpegOut("Recordings/" + id + ".wav");
-            using (var ffmpegOutStdinStream = ffmpegProcesses[id].StandardInput.BaseStream)
+            using (var ffmpegStream = ffmpegProcesses[id].StandardInput.BaseStream)
+            using (var ffmpegMainStream = ffmpegProcesses[0].StandardInput.BaseStream)
             {
-                try
+                var buffer = new byte[3840];
+                while (await stream.ReadAsync(buffer, 0, buffer.Length) > 0)
                 {
-                    var buffer = new byte[3840];
-                    while (await stream.ReadAsync(buffer, 0, buffer.Length) > 0)
-                    {
-                        await ffmpegOutStdinStream.WriteAsync(buffer, 0, buffer.Length);
-                        await ffmpegOutStdinStream.FlushAsync();
-                        Console.WriteLine(System.Text.Encoding.Default.GetString(buffer));
-                    }
-                }
-                finally
-                {
-                    await ffmpegOutStdinStream.FlushAsync();
+                    await ffmpegStream.WriteAsync(buffer, 0, buffer.Length);
+                    await ffmpegStream.FlushAsync();
+
+                    await ffmpegMainStream.WriteAsync(buffer, 0, buffer.Length);
+                    await ffmpegMainStream.FlushAsync();
+
+                    //Console.WriteLine(System.Text.Encoding.Default.GetString(buffer));
                 }
             }
         }
 
         private async Task HandleStreamDestroyed(ulong id)
         {
+            var User = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, id);
+            if (User.IsBot)
+                return;
+
             await ffmpegProcesses[id].StandardInput.BaseStream.FlushAsync();
             ffmpegProcesses[id].StandardInput.BaseStream.Close();
             ffmpegProcesses[id].Close();
             Console.WriteLine("Finished writing " + id);
+        }
+
+        private async Task Disconnected(Exception e)
+        {
+            await HandleStreamDestroyed(0);
         }
 
         private Process CreateStream(string path)
@@ -91,8 +100,10 @@ namespace BigMohammadBot.Modules
             {
                 IAudioClient audioClient = await connectingChannel.ConnectAsync();
                 connectedChannel = connectingChannel;
+                ffmpegProcesses[0] = CreateFfmpegOut("Recordings/" + 0 + ".wav");
                 audioClient.StreamCreated += HandleStreamCreated;
                 audioClient.StreamDestroyed += HandleStreamDestroyed;
+                audioClient.Disconnected += Disconnected;
                 foreach (var pair in audioClient.GetStreams())
                 {
                     HandleStreamCreated(id: pair.Key, stream: pair.Value);
@@ -113,8 +124,14 @@ namespace BigMohammadBot.Modules
                     await output.CopyToAsync(stream);
                     await stream.FlushAsync();
                     Console.WriteLine("Spoken!");
-                } 
+                }
             }
+        }
+
+        [Command("stop")]
+        public async Task Task2()
+        {
+            await connectedChannel.DisconnectAsync();
         }
     }
 }
