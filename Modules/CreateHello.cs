@@ -21,7 +21,7 @@ namespace BigMohammadBot.Modules
             else
             {
                 Database.DatabaseContext dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
                 int CallingUserId = await Globals.GetDbUserId(Context.Message.Author);
 
                 if (!AppState.HelloDeleted.Value)

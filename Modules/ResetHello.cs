@@ -21,7 +21,7 @@ namespace BigMohammadBot.Modules
             else
             {
                 Database.DatabaseContext dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
                 AppState.HelloChannelId = await Globals.GetDbChannelId(NewChannel);
                 AppState.HelloDeleted = false;
                 AppState.HelloTimerNotified = false;

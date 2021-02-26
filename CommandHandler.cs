@@ -13,6 +13,9 @@ using Discord.Commands;
 using System.Linq;
 using System.Text.RegularExpressions;
 using Discord.Rest;
+using Discord.Audio;
+using NAudio.Wave;
+using System.Diagnostics;
 
 namespace BigMohammadBot
 {
@@ -46,12 +49,12 @@ namespace BigMohammadBot
         public async Task OnUserJoined(SocketGuildUser User)
         {
             var dbContext = new Database.DatabaseContext();
-            var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+            var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
 
             if (AppState.JoinMuteMinutes > 0)
             {
                 int UserId = await Globals.GetDbUserId(User);
-                var SuppressedUserRow = await dbContext.SupressedUsers.ToAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefault();
+                var SuppressedUserRow = await dbContext.SupressedUsers.AsAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefaultAsync();
 
                 if (SuppressedUserRow == null)
                 {
@@ -95,7 +98,7 @@ namespace BigMohammadBot
         {
             var dbContext = new Database.DatabaseContext();
             var AllChannels = _client.GetGuild(Globals.MohammadServerId).Channels;
-            var AllDbChannels = await dbContext.Channels.ToListAsync();
+            var AllDbChannels = await dbContext.Channels.AsAsyncEnumerable().ToListAsync();
             foreach (Database.Channels Channel in AllDbChannels)
             {
                 if (!Channel.Deleted)
@@ -113,7 +116,7 @@ namespace BigMohammadBot
             try
             {
                 var dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
 
                 if (!AppState.HelloDeleted.Value && AppState.HelloChannelId != 0)
                 {
@@ -124,7 +127,7 @@ namespace BigMohammadBot
                     {
                         try
                         {
-                            var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefault();
+                            var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefaultAsync();
 
                             DeleteHelloChannel("A hello has not been chained for more than a day. The channel has been deleted.", dbChannel.DiscordChannelId.ToInt64());
 
@@ -170,7 +173,7 @@ namespace BigMohammadBot
                                 DateTime CurrentWeekDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
                                 int UserId = await Globals.GetDbUserId(User);
                                 int ChannelId = await Globals.GetDbChannelId(Channel);
-                                var VoiceStatisticsRow = await dbContext.VoiceStatistics.ToAsyncEnumerable().Where(u => u.UserId == UserId && u.ChannelId == ChannelId && u.TimePeriod == CurrentWeekDate).FirstOrDefault();
+                                var VoiceStatisticsRow = await dbContext.VoiceStatistics.ToAsyncEnumerable().Where(u => u.UserId == UserId && u.ChannelId == ChannelId && u.TimePeriod == CurrentWeekDate).FirstOrDefaultAsync();
 
                                 if (VoiceStatisticsRow == null)
                                 {
@@ -192,7 +195,7 @@ namespace BigMohammadBot
                     }
                 }
 
-                var SuppressedUsers = await dbContext.SupressedUsers.ToListAsync();
+                var SuppressedUsers = await dbContext.SupressedUsers.AsAsyncEnumerable().ToListAsync();
                 if (SuppressedUsers.Count > 0)
                 {
                     var SuppressRole = _client.GetGuild(Globals.MohammadServerId).GetRole(Globals.SuppressTextRoleId);
@@ -201,7 +204,7 @@ namespace BigMohammadBot
                         double SecondsDifference = (DateTime.Now - SuppressedUser.TimeStarted.Value).TotalSeconds;
                         if (SecondsDifference >= SuppressedUser.MaxTimeSeconds)
                         {
-                            var User = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == SuppressedUser.UserId).FirstOrDefault(); // should exist at this point
+                            var User = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == SuppressedUser.UserId).FirstOrDefaultAsync(); // should exist at this point
                             try
                             {
                                 ulong DiscordId = User.DiscordUserId.ToInt64();
@@ -230,18 +233,18 @@ namespace BigMohammadBot
                 await _client.SetActivityAsync(Activity);
 
                 var dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
                 AppState.LastHelloUserId = 0;  // reset just for safety reasons
 
                 if (!AppState.HelloDeleted.Value && AppState.HelloChannelId != 0)
                 {
-                    var Channel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefault();
+                    var Channel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefaultAsync();
                     if (Channel != null)
                     {
                         var HelloChannel = _client.GetChannel(Channel.DiscordChannelId.ToInt64()) as SocketTextChannel;
                         if (HelloChannel != null)
                         {
-                            var LastMessage = await HelloChannel.GetMessagesAsync(1).Flatten().FirstOrDefault();
+                            var LastMessage = await HelloChannel.GetMessagesAsync(1).Flatten().FirstOrDefaultAsync();
                             if (LastMessage != null)
                             {
                                 AppState.LastHelloUserId = await Globals.GetDbUserId(LastMessage.Author);
@@ -268,7 +271,7 @@ namespace BigMohammadBot
                 var dbContext = new Database.DatabaseContext();
                 int UserId = await Globals.GetDbUserId(Context.Message.Author);
                 int ChannelId = await Globals.GetDbChannelId(Context.Guild.GetChannel(Context.Channel.Id)); // context.channel should always be in a guild here
-                var MessageStatisticsRow = await dbContext.MessageStatistics.ToAsyncEnumerable().Where(u => u.UserId == UserId && u.ChannelId == ChannelId && u.TimePeriod == CurrentWeekDate).FirstOrDefault();
+                var MessageStatisticsRow = await dbContext.MessageStatistics.ToAsyncEnumerable().Where(u => u.UserId == UserId && u.ChannelId == ChannelId && u.TimePeriod == CurrentWeekDate).FirstOrDefaultAsync();
 
                 if (MessageStatisticsRow == null)
                 {
@@ -298,7 +301,7 @@ namespace BigMohammadBot
             {
                 if (State.HelloChannelId != 0)
                 {
-                    var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == State.HelloChannelId).FirstOrDefault(); // todo: change back to id instead of channel reference for performance?
+                    var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == State.HelloChannelId).FirstOrDefaultAsync(); // todo: change back to id instead of channel reference for performance?
                     if (Context.Message.Channel.Id == dbChannel.DiscordChannelId.ToInt64())
                     {
                         int UserId = await Globals.GetDbUserId(Context.Message.Author);
@@ -322,10 +325,10 @@ namespace BigMohammadBot
                         else // must be last
                         {
                             string FormattedMessage = new string(Context.Message.Content.ToLower().Where(c => char.IsLetterOrDigit(c)).ToArray());
-                            var FoundGreeting = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Greeting == FormattedMessage && g.Iteration == State.HelloIteration).FirstOrDefault();
+                            var FoundGreeting = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Greeting == FormattedMessage && g.Iteration == State.HelloIteration).FirstOrDefaultAsync();
                             if (FoundGreeting != null)
                             {
-                                var CopiedUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == FoundGreeting.UserId).FirstOrDefault(); // should exist
+                                var CopiedUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == FoundGreeting.UserId).FirstOrDefaultAsync(); // should exist
                                 Break = true;
                                 Reason = "has copied <@!" + CopiedUser.DiscordUserId.ToInt64() + "> by saying \"" + Context.Message.Content + "\"";
                             }
@@ -344,7 +347,7 @@ namespace BigMohammadBot
 
                         if (Break)
                         {
-                            var DbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == UserId).FirstOrDefault();
+                            var DbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == UserId).FirstOrDefaultAsync();
                             var BreakerRole = Context.Guild.GetRole(Globals.ChainBreakerRoleId);
                             var BreakerUser = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, DbUser.DiscordUserId.ToInt64());
                             await (BreakerUser as IGuildUser).AddRoleAsync(BreakerRole);
@@ -434,7 +437,7 @@ namespace BigMohammadBot
                     if (!(msg.Channel is SocketDMChannel))
                     {
                         var dbContext = new Database.DatabaseContext();
-                        var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+                        var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
                         if (context.Guild.Id == Globals.MohammadServerId) // only track statistics on one server (todo: guilds inside channels)
                             await UpdateSentMessages(context);
                         if (!AppState.HelloDeleted.Value)
@@ -473,7 +476,7 @@ namespace BigMohammadBot
                                             {
                                                 Message = Message.Replace(" ", "");
                                                 string CheckingGreeting = new string(Message.Substring(6, Message.Length - 6).ToLower().Where(c => char.IsLetterOrDigit(c)).ToArray());
-                                                var CurrentGreetings = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Iteration == AppState.HelloIteration).ToList();
+                                                var CurrentGreetings = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Iteration == AppState.HelloIteration).ToListAsync();
                                                 if (CurrentGreetings.Exists(g => g.Greeting == CheckingGreeting))
                                                     await context.Channel.SendMessageAsync("That greeting has been used");
                                                 else
@@ -601,7 +604,7 @@ namespace BigMohammadBot
                                         string SendingMessage = Message.Substring(7, Message.Length - 7);
 
                                         var DMChannel = msg.Channel as SocketDMChannel;
-                                        var LastMessages = await DMChannel.GetMessagesAsync(2).Flatten().ToList();
+                                        var LastMessages = await DMChannel.GetMessagesAsync(2).Flatten().ToListAsync();
                                         if (LastMessages[1].Content.Split("<")[1][0] == '@')
                                         {
                                             var SendingUser = await _client.Rest.GetGuildUserAsync(Globals.MohammadServerId, ulong.Parse(LastMessages[1].Content.Split("!")[1].Split(">")[0]));

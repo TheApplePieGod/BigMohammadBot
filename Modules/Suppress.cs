@@ -30,7 +30,7 @@ namespace BigMohammadBot.Modules
                 {
                     var dbContext = new Database.DatabaseContext();
                     int UserId = await Globals.GetDbUserId(User);
-                    var SuppressedUserRow = await dbContext.SupressedUsers.ToAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefault();
+                    var SuppressedUserRow = await dbContext.SupressedUsers.ToAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefaultAsync();
 
                     if (SuppressedUserRow == null)
                     {

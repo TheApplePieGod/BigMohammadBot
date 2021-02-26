@@ -35,13 +35,13 @@ namespace BigMohammadBot.Modules
             else
             {
                 Database.DatabaseContext dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.FirstOrDefaultAsync();
+                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
                 var GeneralChannel = Context.Client.GetChannel(Globals.GeneralChannelId) as SocketTextChannel;
                 int CallingUserId = await Globals.GetDbUserId(Context.Message.Author);
 
                 try
                 {
-                    var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefault();
+                    var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefaultAsync();
                     var HelloChannel = Context.Client.GetChannel(dbChannel.DiscordChannelId.ToInt64()) as SocketTextChannel;
                     await HelloChannel.DeleteAsync();
                     dbChannel.Deleted = true;
@@ -55,7 +55,7 @@ namespace BigMohammadBot.Modules
                 }
 
                 int dbUserId = await Globals.GetDbUserId(User);
-                var dbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == dbUserId).FirstOrDefault();
+                var dbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == dbUserId).FirstOrDefaultAsync();
                 dbUser.ChainBreaks = dbUser.ChainBreaks + 1;
 
                 try

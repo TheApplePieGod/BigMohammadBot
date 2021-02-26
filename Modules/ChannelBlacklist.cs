@@ -29,7 +29,7 @@ namespace BigMohammadBot.Modules
                     if (Channel != null)
                     {
                         int dbChannelId = await Globals.GetDbChannelId(Channel);
-                        var BlacklistedChannel = await dbContext.ChannelBlacklist.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefault();
+                        var BlacklistedChannel = await dbContext.ChannelBlacklist.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefaultAsync();
                         if (BlacklistedChannel != null)
                             await ReplyAsync("Channel <#" + Channel.Id + "> already blacklisted");
                         else
@@ -58,7 +58,7 @@ namespace BigMohammadBot.Modules
                     if (Channel != null)
                     {
                         int dbChannelId = await Globals.GetDbChannelId(Channel);
-                        var BlacklistedChannel = await dbContext.ChannelBlacklist.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefault();
+                        var BlacklistedChannel = await dbContext.ChannelBlacklist.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefaultAsync();
                         if (BlacklistedChannel == null)
                             await ReplyAsync("Channel <#" + Channel.Id + "> is not blacklisted");
                         else
@@ -83,8 +83,8 @@ namespace BigMohammadBot.Modules
                 else if (Operation == "list")
                 {
                     string ListString = "";
-                    var Blacklist = await dbContext.ChannelBlacklist.ToListAsync();
-                    var AllChannels = await dbContext.Channels.ToAsyncEnumerable().Where(c => Blacklist.Exists(b => b.ChannelId == c.Id)).ToList();
+                    var Blacklist = await dbContext.ChannelBlacklist.AsAsyncEnumerable().ToListAsync();
+                    var AllChannels = await dbContext.Channels.ToAsyncEnumerable().Where(c => Blacklist.Exists(b => b.ChannelId == c.Id)).ToListAsync();
 
                     foreach (Database.ChannelBlacklist Item in Blacklist)
                     {
