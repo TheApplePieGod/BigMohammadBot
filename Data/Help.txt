@@ -9,6 +9,12 @@
 - Returns how many greetings were sent in the specified chain iteration
 - Call it without an argument to get data for the current chain
 
+[$now]
+- Lists the top 5 messagers in the current chain
+
+[$top]
+- Lists the top 10 chain messagers of all time
+
 [$breakers]
 - Lists the top 5 chain breakers
 

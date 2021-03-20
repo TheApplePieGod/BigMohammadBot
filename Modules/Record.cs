@@ -10,21 +10,20 @@ using System.Reflection;
 using System.IO;
 using Discord.Audio;
 using System.Diagnostics;
-using NAudio.Wave;
-using NAudio.MediaFoundation;
 
 namespace BigMohammadBot.Modules
 {
     public class Record : ModuleBase<SocketCommandContext>
     {
-        private SocketVoiceChannel connectedChannel;
+        private static SocketVoiceChannel connectedChannel;
 
-        private Dictionary<ulong, Process> ffmpegProcesses = new Dictionary<ulong, Process>();
+        private static Dictionary<ulong, Process> ffmpegProcesses = new Dictionary<ulong, Process>();
+        private static long currentId = 0;
 
         private async Task HandleStreamCreated(ulong id, AudioInStream stream)
         {
             var User = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, id);
-            if (User.IsBot)
+            if (User != null && User.IsBot)
                 return;
 
             Console.WriteLine("Stream was created for " + id);
@@ -35,7 +34,7 @@ namespace BigMohammadBot.Modules
             //    outputFileStream.Close();
             //}
 
-            ffmpegProcesses[id] = CreateFfmpegOut("Recordings/" + id + ".wav");
+            ffmpegProcesses[id] = CreateFfmpegOut("Recordings/" + id + " - " + currentId + ".wav");
             using (var ffmpegStream = ffmpegProcesses[id].StandardInput.BaseStream)
             using (var ffmpegMainStream = ffmpegProcesses[0].StandardInput.BaseStream)
             {
@@ -55,9 +54,12 @@ namespace BigMohammadBot.Modules
 
         private async Task HandleStreamDestroyed(ulong id)
         {
-            var User = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, id);
-            if (User.IsBot)
-                return;
+            if (id != 0)
+            {
+                var User = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, id);
+                if (User != null && User.IsBot)
+                    return;
+            }
 
             await ffmpegProcesses[id].StandardInput.BaseStream.FlushAsync();
             ffmpegProcesses[id].StandardInput.BaseStream.Close();
@@ -74,17 +76,18 @@ namespace BigMohammadBot.Modules
         {
             return Process.Start(new ProcessStartInfo
             {
-                FileName = "ffmpeg.exe",
+                FileName = "ffmpeg",
                 Arguments = $"-loglevel panic -i \"{path}\" -ac 2 -f s16le -ar 48000 pipe:1",
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
             });
         }
+
         private Process CreateFfmpegOut(string savePath)
         {
             return Process.Start(new ProcessStartInfo
             {
-                FileName = "ffmpeg.exe",
+                FileName = "ffmpeg",
                 Arguments = $"-hide_banner -loglevel panic -ac 2 -f s16le -ar 48000 -i pipe:0 -acodec pcm_u8 -ar 22050 \"{savePath}\"",
                 // Minimal version for piping etc
                 //Arguments = $"-c 2 -f S16_LE -r 44100",
@@ -96,11 +99,12 @@ namespace BigMohammadBot.Modules
         [Command("record", RunMode = RunMode.Async)]
         public async Task Task1(SocketVoiceChannel connectingChannel)
         {
-            if (Globals.AdminUserIds.Contains(Context.Message.Author.Id)) // admin command
+            if (Globals.AdminUserIds.Contains(Context.Message.Author.Id))
             {
                 IAudioClient audioClient = await connectingChannel.ConnectAsync();
                 connectedChannel = connectingChannel;
-                ffmpegProcesses[0] = CreateFfmpegOut("Recordings/" + 0 + ".wav");
+                currentId = DateTimeOffset.Now.ToUnixTimeSeconds();
+                ffmpegProcesses[0] = CreateFfmpegOut("Recordings/" + "0 - " + currentId + ".wav");
                 audioClient.StreamCreated += HandleStreamCreated;
                 audioClient.StreamDestroyed += HandleStreamDestroyed;
                 audioClient.Disconnected += Disconnected;
@@ -109,15 +113,8 @@ namespace BigMohammadBot.Modules
                     HandleStreamCreated(id: pair.Key, stream: pair.Value);
                 }
 
-                //var format = new WaveFormat(48000, 1);
-                //var waveStream = new RawSourceWaveStream("asdasd");
-                //var reader = new Mp3FileReader("Data/WalkingMoon.mp3");
-                //var naudio = WaveFormatConversionStream.CreatePcmStream(reader);
-                //var stream = audioClient.CreatePCMStream(AudioApplication.Music, 64000);
-                //await naudio.CopyToAsync(stream);
-                //await stream.FlushAsync();
 
-                using (var ffmpeg = CreateStream("Data/RecordingStarted.mp3"))
+                using (var ffmpeg = CreateStream("Data/WalkingMoon.mp3"))
                 using (var output = ffmpeg.StandardOutput.BaseStream)
                 using (var stream = audioClient.CreatePCMStream(AudioApplication.Music, 64000))
                 {
@@ -131,7 +128,26 @@ namespace BigMohammadBot.Modules
         [Command("stop")]
         public async Task Task2()
         {
-            await connectedChannel.DisconnectAsync();
+            if (Globals.AdminUserIds.Contains(Context.Message.Author.Id))
+            {
+                await connectedChannel.DisconnectAsync();
+                foreach (var pair in ffmpegProcesses)
+                {
+                    HandleStreamDestroyed(pair.Key);
+                }
+            }
         }
+
+        //[Command("download")]
+        //public async Task Task3(int recordingId)
+        //{
+        //    var GuildUser = Context.Guild.GetUser(Context.User.Id);
+        //    if (!GuildUser.GuildPermissions.Administrator && !Globals.AdminUserIds.Contains(Context.Message.Author.Id))
+        //        throw new Exception("You do not have permission to run that command");
+        //    else
+        //    {
+                
+        //    }
+        //}
     }
 }

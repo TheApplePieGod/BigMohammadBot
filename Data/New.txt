@@ -1,4 +1,8 @@
 ```ini
+V2.2
+-----
+- Added the $now and $top command
+
 V2.1
 -----
 - Users are muted for 24 hrs upon join

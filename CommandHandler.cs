@@ -14,7 +14,6 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using Discord.Rest;
 using Discord.Audio;
-using NAudio.Wave;
 using System.Diagnostics;
 
 namespace BigMohammadBot

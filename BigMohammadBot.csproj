@@ -47,9 +47,20 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="NAudio" Version="2.0.0" />
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
   </ItemGroup>
 
+  <Target Name="AddPayloadsFolder" AfterTargets="Publish">
+    <Exec Command="xcopy &quot;$(SolutionDir)bin\Debug\netcoreapp3.1\libsodium.dll&quot; &quot;$(PublishDir)&quot; /Y /I" />
+    <Exec Command="xcopy &quot;$(SolutionDir)bin\Debug\netcoreapp3.1\opus.dll&quot; &quot;$(PublishDir)&quot; /Y /I" />
+    <Exec Command="mkdir &quot;$(PublishDir)\Recordings&quot;" />
+    <Exec Command="mkdir &quot;$(PublishDir)\TTS&quot;" />
+  </Target>
+
+  <PropertyGroup>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <GenerateBindingRedirectsOutputType>true</GenerateBindingRedirectsOutputType>
+  </PropertyGroup>
 
   <ItemGroup>
     <None Update="Data\RecordingStarted.mp3">
