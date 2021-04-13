@@ -10,31 +10,34 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
 using BigMohammadBot.Database.FunctionModels;
 
-public struct UserPercent
-{
-    public string UserName { get; set; }
-    public decimal Percent { get; set; }
-}
-
 namespace BigMohammadBot.Modules
 {
+    public struct UserPercent
+    {
+        public string UserName { get; set; }
+        public ulong DiscordId { get; set; }
+        public decimal Percent { get; set; }
+    }
+
+    public class ReportReturn
+    {
+        public int TotalMessages;
+        public int TotalSeconds;
+        public List<UserPercent> PercentageList;
+        public string Data;
+    }
     public class Report : ModuleBase<SocketCommandContext>
     {
-        public class ReportReturn
-        {
-            public int TotalMessages;
-            public int TotalSeconds;
-            public string Data;
-        }
+        
 
-        public async Task<ReportReturn> ReportRange(string Bottom, string Top)
+        public static async Task<ReportReturn> ReportRange(string Bottom, string Top)
         {
             Database.DatabaseContext dbContext = new Database.DatabaseContext();
 
             int TotalMessages = 0;
             int TotalSecondsInVoice = 0;
 
-            var AllUserActivity = await dbContext.UserActivityModel.FromSqlRaw(@"select UserName, sum(TotalMessages) as TotalMessages, sum(TotalSecondsInVoice) as TotalSecondsInVoice from udf_GetUserActivity(@userid, @allusers, @timebottom, @timetop) group by UserName",
+            var AllUserActivity = await dbContext.UserActivityModel.FromSqlRaw(@"select UserName, DiscordId, sum(TotalMessages) as TotalMessages, sum(TotalSecondsInVoice) as TotalSecondsInVoice from udf_GetUserActivity(@userid, @allusers, @timebottom, @timetop) group by UserName, DiscordId",
                 new SqlParameter("@userid", 1),
                 new SqlParameter("@allusers", true),
                 new SqlParameter("@timebottom", Bottom),
@@ -50,11 +53,11 @@ namespace BigMohammadBot.Modules
             Data.TotalMessages = TotalMessages;
             Data.TotalSeconds = TotalSecondsInVoice;
             Data.Data = "";
+            Data.PercentageList = new List<UserPercent>();
 
             if (TotalMessages == 0 && TotalSecondsInVoice == 0)
                 return Data;
 
-            List<UserPercent> UserPercents = new List<UserPercent>();
             foreach (UserActivity Stat in AllUserActivity)
             {
                 float MessageAverage = (float)Stat.TotalMessages / (float)Math.Max(TotalMessages, 1);
@@ -70,13 +73,14 @@ namespace BigMohammadBot.Modules
 
                 UserPercent Output = new UserPercent();
                 Output.UserName = Stat.UserName;
+                Output.DiscordId = Stat.DiscordId.ToInt64();
                 Output.Percent = Decimal.Round((decimal)WeightedAverage, 1);
-                UserPercents.Add(Output);
+                Data.PercentageList.Add(Output);
             }
 
             string ReportString = "";
-            UserPercents = UserPercents.OrderByDescending(e => e.Percent).ToList();
-            foreach (UserPercent Element in UserPercents)
+            Data.PercentageList = Data.PercentageList.OrderByDescending(e => e.Percent).ToList();
+            foreach (UserPercent Element in Data.PercentageList)
             {
                 ReportString += Element.UserName + ": **" + Element.Percent + "%**\n";
             }

@@ -445,7 +445,7 @@ namespace BigMohammadBot
 
                         int argPos = 0;
 #if (DEBUG)
-                    char Prefix = '?';
+                        char Prefix = '?';
 #else
                         char Prefix = '$';
 #endif
@@ -526,7 +526,6 @@ namespace BigMohammadBot
                             if (msg.Content.Trim() == "rock" || msg.Content.Trim() == "scissors" || msg.Content.Trim() == "paper")
                             {
                                 ulong winner = 0;
-                                int currentInput = 0;
                                 switch (msg.Content.Trim())
                                 {
                                     case "rock":
@@ -538,7 +537,6 @@ namespace BigMohammadBot
                                         else
                                         {
                                             winner = PickWinner(msg.Author.Id, LastRPSUser, 0, LastRPSInput);
-                                            currentInput = 0;
                                         }
                                         break;
                                     case "paper":
@@ -550,7 +548,6 @@ namespace BigMohammadBot
                                         else
                                         {
                                             winner = PickWinner(msg.Author.Id, LastRPSUser, 1, LastRPSInput);
-                                            currentInput = 1;
                                         }
                                         break;
                                     case "scissors":
@@ -562,7 +559,7 @@ namespace BigMohammadBot
                                         else
                                         {
                                             winner = PickWinner(msg.Author.Id, LastRPSUser, 2, LastRPSInput);
-                                            currentInput = 2;
+  
                                         }
                                         break;
                                 }
