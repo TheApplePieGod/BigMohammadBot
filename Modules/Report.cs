@@ -72,7 +72,7 @@ namespace BigMohammadBot.Modules
                     WeightedAverage = ((MessageAverage * 0.6) + (VoiceAverage * 0.4)) / 1 * 100;
 
                 UserPercent Output = new UserPercent();
-                Output.UserName = Stat.UserName;
+                Output.UserName = Stat.UserName.Replace("/", "").Replace("\\", "");
                 Output.DiscordId = Stat.DiscordId.ToInt64();
                 Output.Percent = Decimal.Round((decimal)WeightedAverage, 1);
                 Data.PercentageList.Add(Output);

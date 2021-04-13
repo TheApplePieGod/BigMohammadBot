@@ -26,7 +26,7 @@ namespace BigMohammadBot.Modules
             string LeaderboardString = "";
             for (int i = 0; i < Math.Min(5, Count.Count); i++)
             {
-                LeaderboardString += (i + 1) + ". " + Count[i].UserName + ": **" + Count[i].Count + "**\n";
+                LeaderboardString += (i + 1) + ". " + Count[i].UserName.Replace("/", "").Replace("\\", "") + ": **" + Count[i].Count + "**\n";
             }
 
             var embed = new EmbedBuilder
@@ -50,7 +50,7 @@ namespace BigMohammadBot.Modules
             string LeaderboardString = "";
             for (int i = 0; i < Math.Min(5, Count.Count); i++)
             {
-                LeaderboardString += (i + 1) + ". " + Count[i].UserName + ": **" + Count[i].Count + "**\n";
+                LeaderboardString += (i + 1) + ". " + Count[i].UserName.Replace("/", "").Replace("\\", "") + ": **" + Count[i].Count + "**\n";
             }
 
             var embed = new EmbedBuilder
@@ -94,7 +94,7 @@ namespace BigMohammadBot.Modules
             var embed = new EmbedBuilder
             {
                 Title = "User Stats",
-                Description = "Stats for **" + Context.User.Username + "**"
+                Description = "Stats for **" + Context.User.Username.Replace("/", "").Replace("\\", "") + "**"
             };
             embed.AddField("Breaks", "Amount: **" + BreakCount.Count + "**");
             embed.AddField("Keeper of the Chain", "Amount: **" + KeepCount.Count + "**");

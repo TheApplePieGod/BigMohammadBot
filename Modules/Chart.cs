@@ -103,7 +103,7 @@ namespace BigMohammadBot.Modules
                 {
                     string Key = DataValues.Keys.ElementAt(i);
                     DataSets += "{label:'";
-                    DataSets += Key;
+                    DataSets += Key.Replace("/", "").Replace("\\", "");
                     DataSets += "',data:[";
                     for (int j = 0; j < DataValues[Key].Count; j++)
                     {

@@ -35,7 +35,7 @@ namespace BigMohammadBot.Modules
             AllUserTotalMessages = AllUserTotalMessages.OrderByDescending(e => e.TotalMessages).ToList();
             foreach (UserTotalMessages Stat in AllUserTotalMessages)
             {
-                MessagesString += Stat.UserName + ": **" + Stat.TotalMessages + "**\n";
+                MessagesString += Stat.UserName.Replace("/", "").Replace("\\", "") + ": **" + Stat.TotalMessages + "**\n";
             }
 
             string VoiceChannelString = "";
@@ -48,7 +48,7 @@ namespace BigMohammadBot.Modules
             AllTotalVoiceSeconds = AllTotalVoiceSeconds.OrderByDescending(e => e.TotalSecondsInVoice).ToList();
             foreach (UserTotalVoiceTime Stat in AllTotalVoiceSeconds)
             {
-                VoiceChannelString += Stat.UserName + ": **" + Decimal.Round((decimal)Stat.TotalSecondsInVoice / 60, 1) + "**\n";
+                VoiceChannelString += Stat.UserName.Replace("/", "").Replace("\\", "") + ": **" + Decimal.Round((decimal)Stat.TotalSecondsInVoice / 60, 1) + "**\n";
             }
 
             string ChannelsString = "";
