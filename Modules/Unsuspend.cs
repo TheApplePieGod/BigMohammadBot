@@ -28,7 +28,7 @@ namespace BigMohammadBot.Modules
             {
                 var dbContext = new Database.DatabaseContext();
                 int UserId = await Globals.GetDbUserId(User);
-                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+                var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
                 if (AppState.SuspendedUserId == UserId)
                     AppState.SuspendedUserId = 0;

@@ -34,7 +34,7 @@ namespace BigMohammadBot.Modules
 
                     if (SuppressedUserRow == null)
                     {
-                        Database.SupressedUsers NewRow = new Database.SupressedUsers();
+                        Database.SupressedUser NewRow = new Database.SupressedUser();
                         NewRow.UserId = UserId;
                         NewRow.TimeStarted = DateTime.Now;
                         NewRow.MaxTimeSeconds = Minutes * 60;

@@ -35,7 +35,7 @@ namespace BigMohammadBot.Modules
             else
             {
                 Database.DatabaseContext dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+                var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
                 var GeneralChannel = Context.Client.GetChannel(Globals.GeneralChannelId) as SocketTextChannel;
                 int CallingUserId = await Globals.GetDbUserId(Context.Message.Author);
 

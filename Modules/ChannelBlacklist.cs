@@ -13,7 +13,7 @@ namespace BigMohammadBot.Modules
     public class ChannelBlacklist : ModuleBase<SocketCommandContext>
     {
         [Command("blacklist")]
-        public async Task Task1(string Operation, SocketGuildChannel Channel = null)
+        public async Task Task1(string Operation = "", SocketGuildChannel Channel = null)
         {
             var GuildUser = Context.Guild.GetUser(Context.User.Id);
             if (!GuildUser.GuildPermissions.Administrator && !Globals.AdminUserIds.Contains(Context.Message.Author.Id))
@@ -29,7 +29,7 @@ namespace BigMohammadBot.Modules
                     if (Channel != null)
                     {
                         int dbChannelId = await Globals.GetDbChannelId(Channel);
-                        var BlacklistedChannel = await dbContext.ChannelBlacklist.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefaultAsync();
+                        var BlacklistedChannel = await dbContext.ChannelBlacklists.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefaultAsync();
                         if (BlacklistedChannel != null)
                             await ReplyAsync("Channel <#" + Channel.Id + "> already blacklisted");
                         else
@@ -38,7 +38,7 @@ namespace BigMohammadBot.Modules
                             {
                                 Database.ChannelBlacklist NewRow = new Database.ChannelBlacklist();
                                 NewRow.ChannelId = dbChannelId;
-                                dbContext.ChannelBlacklist.Add(NewRow);
+                                dbContext.ChannelBlacklists.Add(NewRow);
                                 await dbContext.SaveChangesAsync();
                                 await ReplyAsync("Successfully blacklisted channel <#" + Channel.Id + "> from statistics");
                                 Globals.LogActivity(8, "", Channel.Name, true, CallingUserId);
@@ -58,14 +58,14 @@ namespace BigMohammadBot.Modules
                     if (Channel != null)
                     {
                         int dbChannelId = await Globals.GetDbChannelId(Channel);
-                        var BlacklistedChannel = await dbContext.ChannelBlacklist.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefaultAsync();
+                        var BlacklistedChannel = await dbContext.ChannelBlacklists.ToAsyncEnumerable().Where(c => c.ChannelId == dbChannelId).FirstOrDefaultAsync();
                         if (BlacklistedChannel == null)
                             await ReplyAsync("Channel <#" + Channel.Id + "> is not blacklisted");
                         else
                         {
                             try
                             {
-                                dbContext.ChannelBlacklist.Remove(BlacklistedChannel);
+                                dbContext.ChannelBlacklists.Remove(BlacklistedChannel);
                                 await dbContext.SaveChangesAsync();
                                 await ReplyAsync("Successfully removed channel <#" + Channel.Id + "> from blacklist");
                                 Globals.LogActivity(9, "", Channel.Name, true, CallingUserId);
@@ -83,7 +83,7 @@ namespace BigMohammadBot.Modules
                 else if (Operation == "list")
                 {
                     string ListString = "";
-                    var Blacklist = await dbContext.ChannelBlacklist.AsAsyncEnumerable().ToListAsync();
+                    var Blacklist = await dbContext.ChannelBlacklists.AsAsyncEnumerable().ToListAsync();
                     var AllChannels = await dbContext.Channels.ToAsyncEnumerable().Where(c => Blacklist.Exists(b => b.ChannelId == c.Id)).ToListAsync();
 
                     foreach (Database.ChannelBlacklist Item in Blacklist)

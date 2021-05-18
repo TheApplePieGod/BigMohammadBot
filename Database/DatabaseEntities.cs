@@ -2,6 +2,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
+#nullable disable
+
 namespace BigMohammadBot.Database
 {
     public partial class DatabaseEntities : DbContext
@@ -15,29 +17,33 @@ namespace BigMohammadBot.Database
         {
         }
 
-        public virtual DbSet<ActivityLog> ActivityLog { get; set; }
-        public virtual DbSet<ActivityTypes> ActivityTypes { get; set; }
-        public virtual DbSet<AppState> AppState { get; set; }
-        public virtual DbSet<ChannelBlacklist> ChannelBlacklist { get; set; }
-        public virtual DbSet<ChannelTypes> ChannelTypes { get; set; }
-        public virtual DbSet<Channels> Channels { get; set; }
-        public virtual DbSet<Greetings> Greetings { get; set; }
-        public virtual DbSet<MessageStatistics> MessageStatistics { get; set; }
-        public virtual DbSet<SupressedUsers> SupressedUsers { get; set; }
-        public virtual DbSet<Users> Users { get; set; }
-        public virtual DbSet<VoiceStatistics> VoiceStatistics { get; set; }
+        public virtual DbSet<ActivityLog> ActivityLogs { get; set; }
+        public virtual DbSet<ActivityType> ActivityTypes { get; set; }
+        public virtual DbSet<AppState> AppStates { get; set; }
+        public virtual DbSet<Channel> Channels { get; set; }
+        public virtual DbSet<ChannelBlacklist> ChannelBlacklists { get; set; }
+        public virtual DbSet<ChannelType> ChannelTypes { get; set; }
+        public virtual DbSet<Emote> Emotes { get; set; }
+        public virtual DbSet<Greeting> Greetings { get; set; }
+        public virtual DbSet<MessageStatistic> MessageStatistics { get; set; }
+        public virtual DbSet<SchemaVersion> SchemaVersions { get; set; }
+        public virtual DbSet<SupressedUser> SupressedUsers { get; set; }
+        public virtual DbSet<User> Users { get; set; }
+        public virtual DbSet<VoiceStatistic> VoiceStatistics { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             if (!optionsBuilder.IsConfigured)
             {
-#warning To protect potentially sensitive information in your connection string, you should move it out of source code. See http://go.microsoft.com/fwlink/?LinkId=723263 for guidance on storing connection strings.
+#warning To protect potentially sensitive information in your connection string, you should move it out of source code. You can avoid scaffolding the connection string by using the Name= syntax to read it from configuration - see https://go.microsoft.com/fwlink/?linkid=2131148. For more guidance on storing connection strings, see http://go.microsoft.com/fwlink/?LinkId=723263.
                 optionsBuilder.UseSqlServer("Server=.\\SQLEXPRESS;Database=BigMohammadBot;Trusted_Connection=True;");
             }
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.HasAnnotation("Relational:Collation", "SQL_Latin1_General_CP1_CI_AS");
+
             modelBuilder.Entity<ActivityLog>(entity =>
             {
                 entity.Property(e => e.Information).IsUnicode(false);
@@ -45,7 +51,7 @@ namespace BigMohammadBot.Database
                 entity.Property(e => e.ResultText).IsUnicode(false);
             });
 
-            modelBuilder.Entity<ActivityTypes>(entity =>
+            modelBuilder.Entity<ActivityType>(entity =>
             {
                 entity.Property(e => e.Name).IsUnicode(false);
             });
@@ -61,22 +67,29 @@ namespace BigMohammadBot.Database
                 entity.Property(e => e.StatisticsPeriodStart).HasDefaultValueSql("(getdate())");
             });
 
-            modelBuilder.Entity<ChannelTypes>(entity =>
-            {
-                entity.Property(e => e.Name).IsUnicode(false);
-            });
-
-            modelBuilder.Entity<Channels>(entity =>
+            modelBuilder.Entity<Channel>(entity =>
             {
                 entity.Property(e => e.DiscordChannelName).IsUnicode(false);
             });
 
-            modelBuilder.Entity<Greetings>(entity =>
+            modelBuilder.Entity<ChannelType>(entity =>
             {
-                entity.Property(e => e.Greeting).IsUnicode(false);
+                entity.Property(e => e.Name).IsUnicode(false);
             });
 
-            modelBuilder.Entity<Users>(entity =>
+            modelBuilder.Entity<Emote>(entity =>
+            {
+                entity.Property(e => e.Link).IsUnicode(false);
+
+                entity.Property(e => e.Name).IsUnicode(false);
+            });
+
+            modelBuilder.Entity<Greeting>(entity =>
+            {
+                entity.Property(e => e.Greeting1).IsUnicode(false);
+            });
+
+            modelBuilder.Entity<User>(entity =>
             {
                 entity.Property(e => e.DiscordUserName).IsUnicode(false);
             });

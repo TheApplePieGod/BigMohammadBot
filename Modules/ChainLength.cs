@@ -19,7 +19,7 @@ namespace BigMohammadBot.Modules
         public async Task Task1(int iteration = 0)
         {
             Database.DatabaseContext dbContext = new Database.DatabaseContext();
-            var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
             int realIteration = iteration == 0 ? AppState.HelloIteration : iteration;
             var Count = await dbContext.IterationCountModel.FromSqlRaw(@"select * from udf_GetIterationMessageCount(@iteration)",

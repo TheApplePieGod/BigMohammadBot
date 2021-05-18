@@ -48,7 +48,7 @@ namespace BigMohammadBot
         public async Task OnUserJoined(SocketGuildUser User)
         {
             var dbContext = new Database.DatabaseContext();
-            var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
             if (AppState.JoinMuteMinutes > 0)
             {
@@ -57,7 +57,7 @@ namespace BigMohammadBot
 
                 if (SuppressedUserRow == null)
                 {
-                    Database.SupressedUsers NewRow = new Database.SupressedUsers();
+                    Database.SupressedUser NewRow = new Database.SupressedUser();
                     NewRow.UserId = UserId;
                     NewRow.TimeStarted = DateTime.Now;
                     NewRow.MaxTimeSeconds = AppState.JoinMuteMinutes * 60;
@@ -98,7 +98,7 @@ namespace BigMohammadBot
             var dbContext = new Database.DatabaseContext();
             var AllChannels = _client.GetGuild(Globals.MohammadServerId).Channels;
             var AllDbChannels = await dbContext.Channels.AsAsyncEnumerable().ToListAsync();
-            foreach (Database.Channels Channel in AllDbChannels)
+            foreach (Database.Channel Channel in AllDbChannels)
             {
                 if (!Channel.Deleted)
                 {
@@ -115,7 +115,7 @@ namespace BigMohammadBot
             try
             {
                 var dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+                var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
                 if (!AppState.HelloDeleted.Value && AppState.HelloChannelId != 0)
                 {
@@ -176,7 +176,7 @@ namespace BigMohammadBot
 
                                 if (VoiceStatisticsRow == null)
                                 {
-                                    Database.VoiceStatistics NewRow = new Database.VoiceStatistics();
+                                    Database.VoiceStatistic NewRow = new Database.VoiceStatistic();
                                     NewRow.UserId = UserId;
                                     NewRow.TimeInChannel = GenericUpdateDelay;
                                     NewRow.ChannelId = ChannelId;
@@ -198,7 +198,7 @@ namespace BigMohammadBot
                 if (SuppressedUsers.Count > 0)
                 {
                     var SuppressRole = _client.GetGuild(Globals.MohammadServerId).GetRole(Globals.SuppressTextRoleId);
-                    foreach (Database.SupressedUsers SuppressedUser in SuppressedUsers)
+                    foreach (Database.SupressedUser SuppressedUser in SuppressedUsers)
                     {
                         double SecondsDifference = (DateTime.Now - SuppressedUser.TimeStarted.Value).TotalSeconds;
                         if (SecondsDifference >= SuppressedUser.MaxTimeSeconds)
@@ -232,7 +232,7 @@ namespace BigMohammadBot
                 await _client.SetActivityAsync(Activity);
 
                 var dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+                var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
                 AppState.LastHelloUserId = 0;  // reset just for safety reasons
 
                 if (!AppState.HelloDeleted.Value && AppState.HelloChannelId != 0)
@@ -274,7 +274,7 @@ namespace BigMohammadBot
 
                 if (MessageStatisticsRow == null)
                 {
-                    Database.MessageStatistics NewRow = new Database.MessageStatistics();
+                    Database.MessageStatistic NewRow = new Database.MessageStatistic();
                     NewRow.UserId = UserId;
                     NewRow.MessagesSent = 1;
                     NewRow.ChannelId = ChannelId;
@@ -324,7 +324,7 @@ namespace BigMohammadBot
                         else // must be last
                         {
                             string FormattedMessage = new string(Context.Message.Content.ToLower().Where(c => char.IsLetterOrDigit(c)).ToArray());
-                            var FoundGreeting = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Greeting == FormattedMessage && g.Iteration == State.HelloIteration).FirstOrDefaultAsync();
+                            var FoundGreeting = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Greeting1 == FormattedMessage && g.Iteration == State.HelloIteration).FirstOrDefaultAsync();
                             if (FoundGreeting != null)
                             {
                                 var CopiedUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == FoundGreeting.UserId).FirstOrDefaultAsync(); // should exist
@@ -333,9 +333,9 @@ namespace BigMohammadBot
                             }
                             else
                             {
-                                Database.Greetings NewRow = new Database.Greetings();
+                                Database.Greeting NewRow = new Database.Greeting();
                                 NewRow.UserId = UserId;
-                                NewRow.Greeting = FormattedMessage.Substring(0, Math.Min(FormattedMessage.Length, 200));
+                                NewRow.Greeting1 = FormattedMessage.Substring(0, Math.Min(FormattedMessage.Length, 200));
                                 NewRow.Iteration = State.HelloIteration;
                                 dbContext.Greetings.Add(NewRow);
                                 await dbContext.SaveChangesAsync();
@@ -436,7 +436,7 @@ namespace BigMohammadBot
                     if (!(msg.Channel is SocketDMChannel))
                     {
                         var dbContext = new Database.DatabaseContext();
-                        var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+                        var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
                         if (context.Guild.Id == Globals.MohammadServerId) // only track statistics on one server (todo: guilds inside channels)
                             await UpdateSentMessages(context);
                         if (!AppState.HelloDeleted.Value)
@@ -449,6 +449,23 @@ namespace BigMohammadBot
 #else
                         char Prefix = '$';
 #endif
+
+                        string Message = msg.ToString();
+                        if (Message.Count(c => c == '$') > 1) // possibly contains emotes
+                        {
+                            var AllEmotes = await dbContext.Emotes.AsAsyncEnumerable().ToListAsync();
+                            var Splits = Message.Split('$');
+                            for (int i = 1; i < Splits.Length - 1; i++) // skip the first and last splits
+                            {
+                                string Split = Splits[i].Trim().ToLower();
+                                var FoundEmote = AllEmotes.Find(e => e.Name == Split);
+                                if (FoundEmote != null)
+                                {
+                                    await context.Channel.SendMessageAsync(FoundEmote.Link);
+                                    break;
+                                }
+                            }
+                        }
 
                         if (msg.HasCharPrefix(Prefix, ref argPos))
                         {
@@ -467,7 +484,6 @@ namespace BigMohammadBot
                                     try
                                     {
                                         bool FoundCommand = false;
-                                        string Message = msg.ToString();
                                         if (Message.Length >= 6 && Message.Substring(0, 6) == Prefix + "check")
                                         {
                                             FoundCommand = true;
@@ -476,7 +492,7 @@ namespace BigMohammadBot
                                                 Message = Message.Replace(" ", "");
                                                 string CheckingGreeting = new string(Message.Substring(6, Message.Length - 6).ToLower().Where(c => char.IsLetterOrDigit(c)).ToArray());
                                                 var CurrentGreetings = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Iteration == AppState.HelloIteration).ToListAsync();
-                                                if (CurrentGreetings.Exists(g => g.Greeting == CheckingGreeting))
+                                                if (CurrentGreetings.Exists(g => g.Greeting1 == CheckingGreeting))
                                                     await context.Channel.SendMessageAsync("That greeting has been used");
                                                 else
                                                     await context.Channel.SendMessageAsync("That greeting has not been used");

@@ -53,7 +53,7 @@ namespace BigMohammadBot
             Entry.Success = Success;
             Entry.CallTime = DateTime.Now;
             Entry.CalledByUserId = CallingUserId;
-            dbContext.ActivityLog.Add(Entry);
+            dbContext.ActivityLogs.Add(Entry);
 
             await dbContext.SaveChangesAsync();
         }
@@ -65,7 +65,7 @@ namespace BigMohammadBot
             var DbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.DiscordUserId.ToInt64() == User.Id).FirstOrDefaultAsync();
             if (DbUser == null)
             {
-                Database.Users NewUser = new Database.Users();
+                Database.User NewUser = new Database.User();
                 NewUser.DiscordUserId = User.Id.ToByteArray();
                 NewUser.DiscordUserName = User.Username;
                 NewUser.LastActive = DateTime.Now;
@@ -90,7 +90,7 @@ namespace BigMohammadBot
             var DbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(u => u.DiscordChannelId.ToInt64() == Channel.Id).FirstOrDefaultAsync();
             if (DbChannel == null)
             {
-                Database.Channels NewRow = new Database.Channels();
+                Database.Channel NewRow = new Database.Channel();
                 NewRow.DiscordChannelId = Channel.Id.ToByteArray();
                 NewRow.DiscordChannelName = Channel.Name;
                 NewRow.Type = (short)(Channel.GetType().ToString() == "Discord.WebSocket.SocketTextChannel" ? 2 : 1);
@@ -120,7 +120,7 @@ namespace BigMohammadBot
             var DbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(u => u.DiscordChannelId.ToInt64() == ChannelId).FirstOrDefaultAsync();
             if (DbChannel == null)
             {
-                Database.Channels NewRow = new Database.Channels();
+                Database.Channel NewRow = new Database.Channel();
                 NewRow.DiscordChannelId = ChannelId.ToByteArray();
                 NewRow.DiscordChannelName = ChannelName;
                 NewRow.Type = (short)Type;
@@ -146,7 +146,7 @@ namespace BigMohammadBot
         public static async void AwardChainKeeper(int Iteration, int BreakerUserId, SocketGuild Guild, DiscordSocketClient Client) //todo: log
         {
             Database.DatabaseContext dbContext = new Database.DatabaseContext();
-            var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
             var MessageCounts = await dbContext.HelloMessageCountModel.FromSqlRaw(@"select * from udf_GetHelloMessageCount(@iteration, @alliterations, @userid, @allusers) order by NumMessages desc",
                     new SqlParameter("@iteration", Iteration),
                     new SqlParameter("@alliterations", false),
@@ -194,7 +194,7 @@ namespace BigMohammadBot
         public static async void SetSuspendedUser(int NewUserId, SocketGuild Guild, DiscordSocketClient Client) //todo: log
         {
             Database.DatabaseContext dbContext = new Database.DatabaseContext();
-            var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
             if (AppState.SuspendedUserId == NewUserId)
                 return;

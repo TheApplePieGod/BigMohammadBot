@@ -22,6 +22,7 @@
     <None Remove="Data\New.txt" />
     <None Remove="Migrations\Script0001 - InitialMigration.sql" />
     <None Remove="Migrations\Script0002 - udf_GetUserActivity.sql" />
+    <None Remove="Migrations\Script0003 - Emote table.sql" />
   </ItemGroup>
 
   <ItemGroup>
@@ -31,6 +32,7 @@
     <EmbeddedResource Include="Data\DbString.txt" />
     <EmbeddedResource Include="Data\New.txt" />
     <EmbeddedResource Include="Data\HelpAdmin.txt" />
+    <EmbeddedResource Include="Migrations\Script0003 - Emote table.sql" />
     <EmbeddedResource Include="Migrations\Script0002 - udf_GetUserActivity.sql" />
     <EmbeddedResource Include="Migrations\Script0001 - InitialMigration.sql" />
   </ItemGroup>

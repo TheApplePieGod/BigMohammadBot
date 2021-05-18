@@ -55,7 +55,7 @@ namespace BigMohammadBot.Modules
         public async Task Task2()
         {
             Database.DatabaseContext dbContext = new Database.DatabaseContext();
-            var AppState = await dbContext.AppState.AsAsyncEnumerable().FirstOrDefaultAsync();
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
             var Results = await dbContext.HelloMessageCountModel.FromSqlRaw(@"select * from udf_GetHelloMessageCount(@iteration, @alliterations, @userid, @allusers) order by NumMessages desc",
                 new SqlParameter("@iteration", AppState.HelloIteration),

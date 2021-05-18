@@ -22,4 +22,10 @@
 
 [$blacklist list]
 - Lists all channels in the blacklist
+
+[$emotes (add/remove) (name) (image link)]
+- Adds/removes an emote
+
+[$emotes list]
+- Lists all created emotes
 ```

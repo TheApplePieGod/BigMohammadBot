@@ -2,9 +2,13 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using Microsoft.EntityFrameworkCore;
+
+#nullable disable
 
 namespace BigMohammadBot.Database
 {
+    [Table("ChannelBlacklist")]
     public partial class ChannelBlacklist
     {
         [Key]
