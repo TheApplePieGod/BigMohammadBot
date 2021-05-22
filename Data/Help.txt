@@ -30,6 +30,9 @@
 [$check (greeting)]
 - Returns if specified greeting has been used already this iteration
 
+[$emotes list]
+- Lists all created emotes
+
 [$(emoteName)$]
 - Include this in any message to use a Big Mo emote (Big Mo will only send the first valid emote he encounters)
 ```

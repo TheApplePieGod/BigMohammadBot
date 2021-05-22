@@ -1,0 +1,7 @@
+```ini
+[$createhello]
+- Creates a new hello chain if one does not already exist
+
+[$emotes (add/remove/list) (name) (image link)]
+- Adds/removes an emote
+```

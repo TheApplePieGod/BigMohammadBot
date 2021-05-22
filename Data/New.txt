@@ -1,4 +1,12 @@
 ```ini
+V2.5
+-----
+- Updated various permissions and the $purge command
+
+V2.4
+-----
+- Added the $emotes command
+
 V2.3
 -----
 - Added the $reportchart command

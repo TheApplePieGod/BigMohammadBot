@@ -16,7 +16,7 @@ namespace BigMohammadBot.Modules
         public async Task Task1()
         {
             var GuildUser = Context.Guild.GetUser(Context.User.Id);
-            if (!GuildUser.GuildPermissions.Administrator && !Globals.AdminUserIds.Contains(Context.Message.Author.Id))
+            if (!GuildUser.GuildPermissions.ManageMessages && !Globals.AdminUserIds.Contains(Context.Message.Author.Id)) // chat moderator
                 throw new Exception("You do not have permission to run that command");
             else
             {
