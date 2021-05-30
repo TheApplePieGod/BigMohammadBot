@@ -31,11 +31,23 @@ namespace BigMohammadBot.Modules
         }
 
         [Command("greeting")]
-        public async Task Task1()
+        public async Task Task1(int Amount = 1)
         {
+            if (Amount == 0)
+                throw new Exception("Amount cannot be zero");
+            if (Amount > 10)
+                throw new Exception("Amount cannot be more than 10");
+
             Random ran = new Random();
-            int Index = ran.Next(0, Greetings.Count);
-            await ReplyAsync(Greetings[Index]);
+            string Reply = "";
+
+            for (int i = 0; i < Amount; i++)
+            {
+                int Index = ran.Next(0, Greetings.Count);
+                Reply += "- " + Greetings[Index] + '\n';
+            }
+
+            await ReplyAsync(Reply);
         }
     }
 }

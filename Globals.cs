@@ -16,9 +16,10 @@ namespace BigMohammadBot
     public static class Globals
     {
         public static readonly ulong BeefBossId = 129692115495157760;
-        public static readonly List<ulong> AdminUserIds = new List<ulong>{ BeefBossId };
-        
+        public static readonly List<ulong> AdminUserIds = new List<ulong> { BeefBossId };
+
 #if (DEBUG)
+        public static readonly char CommandPrefix = '?';
         public static readonly ulong ChainBreakerRoleId = 755873753464045661;
         public static readonly ulong ChainKeeperRoleId = 757792415179472896;
         public static readonly ulong SuppressTextRoleId = 385580495498641409;
@@ -29,6 +30,7 @@ namespace BigMohammadBot
         public static readonly ulong HelloCategoryId = 783933747711180800;
         public static readonly ulong MohammadServerId = 364208021171339265;
 #else
+        public static readonly char CommandPrefix = '$';
         public static readonly ulong ChainBreakerRoleId = 755845913460867132;
         public static readonly ulong ChainKeeperRoleId = 761208468320550952;
         public static readonly ulong SuppressTextRoleId = 757805274206568558;
@@ -40,10 +42,16 @@ namespace BigMohammadBot
         public static readonly ulong MohammadServerId = 619209478973292545;
 #endif
 
-        //public static readonly string HelloChannelTopic = "This is where we chain hi. NO EMOJIS. NO IMAGES. NO GIFS. ABSOLUTELY NO ATTACHMENTS. ONE MESSAGE AT A TIME. IF YOU GO TWICE IN A ROW YOU LOSE. NO REPEATING GREETINGS. Editing messages is NOT allowed. If nobody messages for 12 hours the channel is deleted and we lose. If you break these rules the channel is deleted and you get the <@&" + ChainBreakerRoleId + "> role. This includes deleting a message and sending another. All languages are welcome. If you can justify it as a greeting it goes (discussions are not allowed).";
+        public static readonly List<string> LoggingIgnoredCommands = new List<string> { CommandPrefix + "greeting" };
 
         public static async void LogActivity(int ActivityType, string Information, string ResultText, bool Success, int CallingUserId = 0)
         {
+            foreach (string Ignored in LoggingIgnoredCommands)
+            {
+                if (Information.Contains(Ignored))
+                    return;
+            }
+
             Database.DatabaseContext dbContext = new Database.DatabaseContext();
 
             Database.ActivityLog Entry = new Database.ActivityLog();

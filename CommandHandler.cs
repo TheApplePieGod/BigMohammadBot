@@ -445,11 +445,6 @@ namespace BigMohammadBot
                         await dbContext.SaveChangesAsync();
 
                         int argPos = 0;
-#if (DEBUG)
-                        char Prefix = '?';
-#else
-                        char Prefix = '$';
-#endif
 
                         string Message = msg.ToString();
                         if (Message.Count(c => c == '$') > 1) // possibly contains emotes
@@ -468,7 +463,7 @@ namespace BigMohammadBot
                             }
                         }
 
-                        if (msg.HasCharPrefix(Prefix, ref argPos))
+                        if (msg.HasCharPrefix(Globals.CommandPrefix, ref argPos))
                         {
                             int UserId = await Globals.GetDbUserId(msg.Author);
                             var result = await _commands.ExecuteAsync(context, argPos, null);
@@ -485,7 +480,7 @@ namespace BigMohammadBot
                                     try
                                     {
                                         bool FoundCommand = false;
-                                        if (Message.Length >= 6 && Message.Substring(0, 6) == Prefix + "check")
+                                        if (Message.Length >= 6 && Message.Substring(0, 6) == Globals.CommandPrefix + "check")
                                         {
                                             FoundCommand = true;
                                             if (Message.Length > 7)
