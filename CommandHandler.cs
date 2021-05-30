@@ -167,7 +167,7 @@ namespace BigMohammadBot
                     {
                         foreach (SocketGuildUser User in Channel.Users)
                         {
-                            if (!User.IsBot && !User.IsSelfMuted && !User.IsSelfDeafened)
+                            if (!User.IsBot && !User.IsSelfMuted && !User.IsSelfDeafened && !User.IsMuted && !User.IsDeafened)
                             {
                                 DateTime CurrentWeekDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
                                 int UserId = await Globals.GetDbUserId(User);
