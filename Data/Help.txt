@@ -27,6 +27,9 @@
 [$me]
 - Lists personal statistics
 
+[$greeting]
+- Says a random greeting that someone has said in the past
+
 [$check (greeting)]
 - Returns if specified greeting has been used already this iteration
 

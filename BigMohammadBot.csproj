@@ -21,6 +21,7 @@
     <None Remove="Data\HelpChatModerator.txt" />
     <None Remove="Data\HelpStats.txt" />
     <None Remove="Data\New.txt" />
+    <None Remove="Data\Words.txt" />
     <None Remove="Migrations\Script0001 - InitialMigration.sql" />
     <None Remove="Migrations\Script0002 - udf_GetUserActivity.sql" />
     <None Remove="Migrations\Script0003 - Emote table.sql" />
@@ -34,6 +35,9 @@
     <EmbeddedResource Include="Data\DbString.txt" />
     <EmbeddedResource Include="Data\New.txt" />
     <EmbeddedResource Include="Data\HelpAdmin.txt" />
+    <EmbeddedResource Include="Data\Words.txt">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </EmbeddedResource>
     <EmbeddedResource Include="Migrations\Script0003 - Emote table.sql" />
     <EmbeddedResource Include="Migrations\Script0002 - udf_GetUserActivity.sql" />
     <EmbeddedResource Include="Migrations\Script0001 - InitialMigration.sql" />

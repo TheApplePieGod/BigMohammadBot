@@ -1,4 +1,8 @@
 ```ini
+V2.6
+-----
+- Added the $greeting command
+
 V2.5
 -----
 - Updated various permissions and the $purge command

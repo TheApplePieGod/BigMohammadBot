@@ -324,7 +324,8 @@ namespace BigMohammadBot
                         else // must be last
                         {
                             string FormattedMessage = new string(Context.Message.Content.ToLower().Where(c => char.IsLetterOrDigit(c)).ToArray());
-                            var FoundGreeting = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Greeting1 == FormattedMessage && g.Iteration == State.HelloIteration).FirstOrDefaultAsync();
+                            string MessageWithSpaces = new string(Context.Message.Content.ToLower().Where(c => char.IsLetterOrDigit(c) || c == ' ').ToArray()).Trim();
+                            var FoundGreeting = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Iteration == State.HelloIteration && g.Greeting1.Replace(" ", "") == FormattedMessage).FirstOrDefaultAsync();
                             if (FoundGreeting != null)
                             {
                                 var CopiedUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == FoundGreeting.UserId).FirstOrDefaultAsync(); // should exist
@@ -335,7 +336,7 @@ namespace BigMohammadBot
                             {
                                 Database.Greeting NewRow = new Database.Greeting();
                                 NewRow.UserId = UserId;
-                                NewRow.Greeting1 = FormattedMessage.Substring(0, Math.Min(FormattedMessage.Length, 200));
+                                NewRow.Greeting1 = MessageWithSpaces.Substring(0, Math.Min(MessageWithSpaces.Length, 200));
                                 NewRow.Iteration = State.HelloIteration;
                                 dbContext.Greetings.Add(NewRow);
                                 await dbContext.SaveChangesAsync();
@@ -491,8 +492,8 @@ namespace BigMohammadBot
                                             {
                                                 Message = Message.Replace(" ", "");
                                                 string CheckingGreeting = new string(Message.Substring(6, Message.Length - 6).ToLower().Where(c => char.IsLetterOrDigit(c)).ToArray());
-                                                var CurrentGreetings = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Iteration == AppState.HelloIteration).ToListAsync();
-                                                if (CurrentGreetings.Exists(g => g.Greeting1 == CheckingGreeting))
+                                                var FoundGreeting = await dbContext.Greetings.ToAsyncEnumerable().Where(g => g.Iteration == AppState.HelloIteration && g.Greeting1.Replace(" ", "") == CheckingGreeting).FirstOrDefaultAsync();
+                                                if (FoundGreeting != null)
                                                     await context.Channel.SendMessageAsync("That greeting has been used");
                                                 else
                                                     await context.Channel.SendMessageAsync("That greeting has not been used");
