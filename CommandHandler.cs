@@ -20,7 +20,7 @@ namespace BigMohammadBot
 {
     public class CommandHandler
     {
-        private DiscordSocketClient _client;
+        public static DiscordSocketClient _client;
 
         private CommandService _commands;
 
@@ -39,20 +39,46 @@ namespace BigMohammadBot
             _commands.AddModulesAsync(Assembly.GetEntryAssembly(), null);
 
             _client.MessageReceived += HandleCommandAsync;
+            _client.MessageDeleted += OnMessageDeleted;
+
+            _client.ReactionAdded += OnReactionAdded;
+            _client.ReactionRemoved += OnReactionRemoved;
 
             _client.UserJoined += OnUserJoined;
 
             _client.Ready += Ready;
         }
 
+        public async Task OnReactionAdded(Cacheable<IUserMessage, ulong> Message, ISocketMessageChannel Channel, SocketReaction Reaction)
+        {
+
+        }
+
+        public async Task OnReactionRemoved(Cacheable<IUserMessage, ulong> Message, ISocketMessageChannel Channel, SocketReaction Reaction)
+        {
+
+        }
+
+        public async Task OnMessageDeleted(Cacheable<IMessage, ulong> Message, ISocketMessageChannel Channel)
+        {
+            var GuildChannel = Channel as SocketGuildChannel;
+            if (GuildChannel.Guild != null)
+            {
+                var dbContext = await DbHelper.GetDbContext(GuildChannel.Guild.Id);
+
+                //var ReactionRoles = await dbContext.
+                //foreach (var elem in dbContext.)
+            }
+        }
+
         public async Task OnUserJoined(SocketGuildUser User)
         {
-            var dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(User.Guild.Id);
             var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
-            if (AppState.JoinMuteMinutes > 0)
+            if (AppState.JoinMuteMinutes > 0 && AppState.SuppressedRoleId != null && AppState.SuppressedRoleId.Length > 0)
             {
-                int UserId = await Globals.GetDbUserId(User);
+                int UserId = await Globals.GetDbUserId(User.Guild.Id, User);
                 var SuppressedUserRow = await dbContext.SupressedUsers.AsAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefaultAsync();
 
                 if (SuppressedUserRow == null)
@@ -69,10 +95,16 @@ namespace BigMohammadBot
                     SuppressedUserRow.MaxTimeSeconds = AppState.JoinMuteMinutes * 60;
                 }
 
-                var SuppressRole = User.Guild.GetRole(Globals.SuppressTextRoleId);
+                var SuppressRole = User.Guild.GetRole(AppState.SuppressedRoleId.ToInt64());
                 await User.AddRoleAsync(SuppressRole);
 
                 await dbContext.SaveChangesAsync();
+            }
+
+            if (AppState.JoinAutoRoleId != null && AppState.JoinAutoRoleId.Length > 0)
+            {
+                var AutoRole = User.Guild.GetRole(AppState.JoinAutoRoleId.ToInt64());
+                await User.AddRoleAsync(AutoRole);
             }
         }
 
@@ -82,184 +114,176 @@ namespace BigMohammadBot
             IsReady = true;
         }
 
-        public async void DeleteHelloChannel(string Message, ulong HelloChannelId)
+        public async void DeleteHelloChannel(SocketTextChannel ResponseChannel, string Message, ulong HelloChannelId)
         {
-            var GeneralChannel = _client.GetChannel(Globals.GeneralChannelId) as SocketTextChannel;
             var HelloChannel = _client.GetChannel(HelloChannelId) as SocketTextChannel;
-            if (HelloChannel != null && GeneralChannel != null)
+            if (HelloChannel != null && ResponseChannel != null)
             {
                 await HelloChannel.DeleteAsync();
-                await GeneralChannel.SendMessageAsync(Message);
+                await ResponseChannel.SendMessageAsync(Message);
             }
         }
 
         public async void SparseTimedUpdate(object state) // runs every 12 hours
         {
-            var dbContext = new Database.DatabaseContext();
-            var AllChannels = _client.GetGuild(Globals.MohammadServerId).Channels;
-            var AllDbChannels = await dbContext.Channels.AsAsyncEnumerable().ToListAsync();
-            foreach (Database.Channel Channel in AllDbChannels)
+            foreach (var entry in DbHelper.ContextLoaded)
             {
-                if (!Channel.Deleted)
+                var dbContext = await DbHelper.GetDbContext(entry.Key);
+                var AllChannels = _client.GetGuild(entry.Key).Channels;
+                var AllDbChannels = await dbContext.Channels.AsAsyncEnumerable().ToListAsync();
+                foreach (Database.Channel Channel in AllDbChannels)
                 {
-                    var FoundChannel = AllChannels.Where(c => c.Id == Channel.DiscordChannelId.ToInt64()).FirstOrDefault();
-                    if (FoundChannel == null)
-                        Channel.Deleted = true;
+                    if (!Channel.Deleted)
+                    {
+                        var FoundChannel = AllChannels.Where(c => c.Id == Channel.DiscordChannelId.ToInt64()).FirstOrDefault();
+                        if (FoundChannel == null)
+                            Channel.Deleted = true;
+                    }
                 }
+                await dbContext.SaveChangesAsync();
             }
-            await dbContext.SaveChangesAsync();
         }
 
         public async void HelloChainTimerUpdate(object state)
         {
-            try
+            foreach (var entry in DbHelper.ContextLoaded)
             {
-                var dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
-
-                if (!AppState.HelloDeleted.Value && AppState.HelloChannelId != 0)
+                try
                 {
-                    DateTime CurrentTime = DateTime.Now;
-                    TimeSpan TimeDifference = (CurrentTime - AppState.LastHelloMessage.Value);
+                    var dbContext = await DbHelper.GetDbContext(entry.Key);
+                    var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
-                    if (TimeDifference.TotalHours >= 12)
+                    if (AppState.EnableHelloChain && !AppState.HelloDeleted.Value && AppState.HelloChannelId != 0)
                     {
-                        try
+                        DateTime CurrentTime = DateTime.Now;
+                        TimeSpan TimeDifference = (CurrentTime - AppState.LastHelloMessage.Value);
+
+                        var ResponseChannel = _client.GetGuild(entry.Key).DefaultChannel;
+                        if (AppState.ResponseChannelId != null && AppState.ResponseChannelId.Length > 0)
+                            ResponseChannel = _client.GetChannel(AppState.ResponseChannelId.ToInt64()) as SocketTextChannel;
+
+                        if (TimeDifference.TotalHours >= 12)
                         {
-                            var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefaultAsync();
+                            try
+                            {
+                                var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefaultAsync();
 
-                            DeleteHelloChannel("A hello has not been chained for more than a day. The channel has been deleted.", dbChannel.DiscordChannelId.ToInt64());
+                                DeleteHelloChannel(ResponseChannel, "A hello has not been chained for more than a day. The channel has been deleted.", dbChannel.DiscordChannelId.ToInt64());
 
-                            dbChannel.Deleted = true;
-                            AppState.HelloDeleted = true;
-                            AppState.HelloTimerNotified = false;
+                                dbChannel.Deleted = true;
+                                AppState.HelloDeleted = true;
+                                AppState.HelloTimerNotified = false;
 
-                            await dbContext.SaveChangesAsync();
+                                await dbContext.SaveChangesAsync();
 
-                            Globals.AwardChainKeeper(AppState.HelloIteration, 0, _client.GetGuild(Globals.MohammadServerId), _client);
+                                Globals.AwardChainKeeper(ResponseChannel, AppState.HelloIteration, 0, _client.GetGuild(entry.Key), _client);
 
-                            Globals.LogActivity(4, "Surpassed 12 hours", "", true);
+                                Globals.LogActivity(entry.Key, 4, "Surpassed 12 hours", "", true);
+                            }
+                            catch (Exception e) { Globals.LogActivity(entry.Key, 4, "Surpassed 12 hours", e.Message, false); }
                         }
-                        catch (Exception e) { Globals.LogActivity(4, "Surpassed 12 hours", e.Message, false); }
-                    }
-                    else if (!AppState.HelloTimerNotified.Value && TimeDifference.TotalHours >= 11)
-                    {
-                        var GeneralChannel = _client.GetChannel(Globals.GeneralChannelId) as SocketTextChannel;
-                        await GeneralChannel.SendMessageAsync("Hello chain will be deleted in an hour or less, make sure to refresh the timer");
+                        else if (!AppState.HelloTimerNotified.Value && TimeDifference.TotalHours >= 11)
+                        {
+                            await ResponseChannel.SendMessageAsync("Hello chain will be deleted in an hour or less, make sure to refresh the timer");
 
-                        AppState.HelloTimerNotified = true;
-                        await dbContext.SaveChangesAsync();
+                            AppState.HelloTimerNotified = true;
+                            await dbContext.SaveChangesAsync();
+                        }
                     }
                 }
+                catch (Exception e) { Globals.LogActivity(entry.Key, 1, "HelloChainTimerUpdate", e.Message, false); }
             }
-            catch (Exception e) { Globals.LogActivity(1, "HelloChainTimerUpdate", e.Message, false); }
         }
 
         public async void GenericTimedUpdate(object state)
         {
-            try
+            foreach (var entry in DbHelper.ContextLoaded)
             {
-                var dbContext = new Database.DatabaseContext();
-                var VoiceChannels = _client.GetGuild(Globals.MohammadServerId).VoiceChannels;
-                foreach (SocketVoiceChannel Channel in VoiceChannels)
+                try
                 {
-                    if (Channel.Users.Count > 0)
-                    {
-                        foreach (SocketGuildUser User in Channel.Users)
-                        {
-                            if (!User.IsBot && !User.IsSelfMuted && !User.IsSelfDeafened && !User.IsMuted && !User.IsDeafened)
-                            {
-                                DateTime CurrentWeekDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
-                                int UserId = await Globals.GetDbUserId(User);
-                                int ChannelId = await Globals.GetDbChannelId(Channel);
-                                var VoiceStatisticsRow = await dbContext.VoiceStatistics.ToAsyncEnumerable().Where(u => u.UserId == UserId && u.ChannelId == ChannelId && u.TimePeriod == CurrentWeekDate).FirstOrDefaultAsync();
+                    var dbContext = await DbHelper.GetDbContext(entry.Key);
+                    var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
-                                if (VoiceStatisticsRow == null)
+                    if (AppState.EnableStatisticsTracking)
+                    {
+                        var VoiceChannels = _client.GetGuild(entry.Key).VoiceChannels;
+                        foreach (SocketVoiceChannel Channel in VoiceChannels)
+                        {
+                            if (Channel.Users.Count > 0)
+                            {
+                                foreach (SocketGuildUser User in Channel.Users)
                                 {
-                                    Database.VoiceStatistic NewRow = new Database.VoiceStatistic();
-                                    NewRow.UserId = UserId;
-                                    NewRow.TimeInChannel = GenericUpdateDelay;
-                                    NewRow.ChannelId = ChannelId;
-                                    NewRow.LastInChannel = DateTime.Now;
-                                    NewRow.TimePeriod = CurrentWeekDate;
-                                    dbContext.VoiceStatistics.Add(NewRow);
-                                }
-                                else
-                                {
-                                    VoiceStatisticsRow.TimeInChannel = VoiceStatisticsRow.TimeInChannel + GenericUpdateDelay;
-                                    VoiceStatisticsRow.LastInChannel = DateTime.Now;
+                                    if (!User.IsBot && !User.IsSelfMuted && !User.IsSelfDeafened && !User.IsMuted && !User.IsDeafened)
+                                    {
+                                        DateTime CurrentWeekDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
+                                        int UserId = await Globals.GetDbUserId(entry.Key, User);
+                                        int ChannelId = await Globals.GetDbChannelId(Channel);
+                                        var VoiceStatisticsRow = await dbContext.VoiceStatistics.ToAsyncEnumerable().Where(u => u.UserId == UserId && u.ChannelId == ChannelId && u.TimePeriod == CurrentWeekDate).FirstOrDefaultAsync();
+
+                                        if (VoiceStatisticsRow == null)
+                                        {
+                                            Database.VoiceStatistic NewRow = new Database.VoiceStatistic();
+                                            NewRow.UserId = UserId;
+                                            NewRow.TimeInChannel = GenericUpdateDelay;
+                                            NewRow.ChannelId = ChannelId;
+                                            NewRow.LastInChannel = DateTime.Now;
+                                            NewRow.TimePeriod = CurrentWeekDate;
+                                            dbContext.VoiceStatistics.Add(NewRow);
+                                        }
+                                        else
+                                        {
+                                            VoiceStatisticsRow.TimeInChannel = VoiceStatisticsRow.TimeInChannel + GenericUpdateDelay;
+                                            VoiceStatisticsRow.LastInChannel = DateTime.Now;
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
-                }
 
-                var SuppressedUsers = await dbContext.SupressedUsers.AsAsyncEnumerable().ToListAsync();
-                if (SuppressedUsers.Count > 0)
-                {
-                    var SuppressRole = _client.GetGuild(Globals.MohammadServerId).GetRole(Globals.SuppressTextRoleId);
-                    foreach (Database.SupressedUser SuppressedUser in SuppressedUsers)
+                    var SuppressedUsers = await dbContext.SupressedUsers.AsAsyncEnumerable().ToListAsync();
+                    if (SuppressedUsers.Count > 0 && AppState.SuppressedRoleId != null && AppState.SuppressedRoleId.Length > 0)
                     {
-                        double SecondsDifference = (DateTime.Now - SuppressedUser.TimeStarted.Value).TotalSeconds;
-                        if (SecondsDifference >= SuppressedUser.MaxTimeSeconds)
+                        var SuppressRole = _client.GetGuild(entry.Key).GetRole(AppState.SuppressedRoleId.ToInt64());
+                        foreach (Database.SupressedUser SuppressedUser in SuppressedUsers)
                         {
-                            var User = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == SuppressedUser.UserId).FirstOrDefaultAsync(); // should exist at this point
-                            try
+                            double SecondsDifference = (DateTime.Now - SuppressedUser.TimeStarted.Value).TotalSeconds;
+                            if (SecondsDifference >= SuppressedUser.MaxTimeSeconds)
                             {
-                                ulong DiscordId = User.DiscordUserId.ToInt64();
-                                var GuildUser = await _client.Rest.GetGuildUserAsync(Globals.MohammadServerId, DiscordId);
-                                await GuildUser.RemoveRoleAsync(SuppressRole);
-                                await (_client.GetChannel(Globals.GeneralChannelId) as ITextChannel).SendMessageAsync("<@!" + DiscordId + "> has been unmuted");
-                                dbContext.SupressedUsers.Remove(SuppressedUser);
-                                Globals.LogActivity(2, User.DiscordUserName, "", true);
+                                var User = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == SuppressedUser.UserId).FirstOrDefaultAsync(); // should exist at this point
+                                try
+                                {
+                                    ulong DiscordId = User.DiscordUserId.ToInt64();
+                                    var GuildUser = await _client.Rest.GetGuildUserAsync(entry.Key, DiscordId);
+                                    var Guild = _client.GetGuild(GuildUser.GuildId);
+                                    await GuildUser.RemoveRoleAsync(SuppressRole);
+                                    if (AppState.ResponseChannelId != null && AppState.ResponseChannelId.Length > 0)
+                                        await (_client.GetChannel(AppState.ResponseChannelId.ToInt64()) as ITextChannel).SendMessageAsync("<@!" + DiscordId + "> has been unmuted");
+                                    else
+                                        await Guild.DefaultChannel.SendMessageAsync("<@!" + DiscordId + "> has been unmuted");
+                                    dbContext.SupressedUsers.Remove(SuppressedUser);
+                                    Globals.LogActivity(entry.Key, 2, User.DiscordUserName, "", true);
+                                }
+                                catch (Exception e) { Globals.LogActivity(entry.Key, 2, User.DiscordUserName, e.Message, false); }
                             }
-                            catch (Exception e) { Globals.LogActivity(2, User.DiscordUserName, e.Message, false); }
                         }
                     }
-                }
 
-                await dbContext.SaveChangesAsync();
+                    await dbContext.SaveChangesAsync();
+                }
+                catch (Exception e) { Globals.LogActivity(entry.Key, 1, "GenericTimedUpdate", e.Message, false); }
             }
-            catch (Exception e) { Globals.LogActivity(1, "GenericTimedUpdate", e.Message, false); }
         }
 
         public async Task Initialize()
         {
-            try
-            {
-                //👀
-                Game Activity = new Game("👀 ($help)", ActivityType.Watching);
-                await _client.SetActivityAsync(Activity);
+            //👀
+            Game Activity = new Game("👀 ($help)", ActivityType.Watching);
+            await _client.SetActivityAsync(Activity);
 
-                var dbContext = new Database.DatabaseContext();
-                var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
-                AppState.LastHelloUserId = 0;  // reset just for safety reasons
-
-                if (!AppState.HelloDeleted.Value && AppState.HelloChannelId != 0)
-                {
-                    var Channel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == AppState.HelloChannelId).FirstOrDefaultAsync();
-                    if (Channel != null)
-                    {
-                        var HelloChannel = _client.GetChannel(Channel.DiscordChannelId.ToInt64()) as SocketTextChannel;
-                        if (HelloChannel != null)
-                        {
-                            var LastMessage = await HelloChannel.GetMessagesAsync(1).Flatten().FirstOrDefaultAsync();
-                            if (LastMessage != null)
-                            {
-                                AppState.LastHelloUserId = await Globals.GetDbUserId(LastMessage.Author);
-                                AppState.LastHelloMessage = LastMessage.Timestamp.DateTime.ToLocalTime();
-                            }
-                        }
-                    }
-                }
-
-                await dbContext.SaveChangesAsync();
-
-                HelloChainTimer = new System.Threading.Timer(HelloChainTimerUpdate, null, 0, 1000 * 3);
-                GenericUpdateTimer = new System.Threading.Timer(GenericTimedUpdate, null, 0, 1000 * GenericUpdateDelay);
-                SparseUpdateTimer = new System.Threading.Timer(SparseTimedUpdate, null, 0, 1000 * 60 * 60 * 12); // 12 hours
-            }
-            catch (Exception e) { Globals.LogActivity(1, "Initialize", e.Message, false); throw e; }
+            HelloChainTimer = new System.Threading.Timer(HelloChainTimerUpdate, null, 0, 1000 * 3);
+            GenericUpdateTimer = new System.Threading.Timer(GenericTimedUpdate, null, 0, 1000 * GenericUpdateDelay);
+            SparseUpdateTimer = new System.Threading.Timer(SparseTimedUpdate, null, 0, 1000 * 60 * 60 * 12); // 12 hours
         }
 
         public async Task UpdateSentMessages(SocketCommandContext Context)
@@ -267,8 +291,8 @@ namespace BigMohammadBot
             try
             {
                 DateTime CurrentWeekDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
-                var dbContext = new Database.DatabaseContext();
-                int UserId = await Globals.GetDbUserId(Context.Message.Author);
+                var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
+                int UserId = await Globals.GetDbUserId(Context.Guild.Id, Context.Message.Author);
                 int ChannelId = await Globals.GetDbChannelId(Context.Guild.GetChannel(Context.Channel.Id)); // context.channel should always be in a guild here
                 var MessageStatisticsRow = await dbContext.MessageStatistics.ToAsyncEnumerable().Where(u => u.UserId == UserId && u.ChannelId == ChannelId && u.TimePeriod == CurrentWeekDate).FirstOrDefaultAsync();
 
@@ -290,12 +314,12 @@ namespace BigMohammadBot
 
                 await dbContext.SaveChangesAsync();
             }
-            catch (Exception e) { Globals.LogActivity(1, "UpdateSentMessages", e.Message, false); }
+            catch (Exception e) { Globals.LogActivity(Context.Guild.Id, 1, "UpdateSentMessages", e.Message, false); }
         }
 
         public async Task UpdateHelloChain(SocketCommandContext Context, Database.AppState State)
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
             try
             {
                 if (State.HelloChannelId != 0)
@@ -303,7 +327,7 @@ namespace BigMohammadBot
                     var dbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(c => c.Id == State.HelloChannelId).FirstOrDefaultAsync(); // todo: change back to id instead of channel reference for performance?
                     if (Context.Message.Channel.Id == dbChannel.DiscordChannelId.ToInt64())
                     {
-                        int UserId = await Globals.GetDbUserId(Context.Message.Author);
+                        int UserId = await Globals.GetDbUserId(Context.Guild.Id, Context.Message.Author);
                         bool Break = false;
                         string Reason = "";
                         if (State.LastHelloUserId == UserId)
@@ -348,9 +372,20 @@ namespace BigMohammadBot
                         if (Break)
                         {
                             var DbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == UserId).FirstOrDefaultAsync();
-                            var BreakerRole = Context.Guild.GetRole(Globals.ChainBreakerRoleId);
-                            var BreakerUser = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, DbUser.DiscordUserId.ToInt64());
-                            await (BreakerUser as IGuildUser).AddRoleAsync(BreakerRole);
+                            var BreakerUser = await Context.Client.Rest.GetGuildUserAsync(Context.Guild.Id, DbUser.DiscordUserId.ToInt64());
+                            var ResponseChannel = Context.Guild.DefaultChannel;
+                            if (State.ResponseChannelId != null && State.ResponseChannelId.Length > 0)
+                                ResponseChannel = _client.GetChannel(State.ResponseChannelId.ToInt64()) as SocketTextChannel;
+
+                            if (State.ChainBreakerRoleId != null && State.ChainBreakerRoleId.Length > 0)
+                            {
+                                try
+                                {
+                                    var BreakerRole = Context.Guild.GetRole(State.ChainBreakerRoleId.ToInt64());
+                                    await (BreakerUser as IGuildUser).AddRoleAsync(BreakerRole);
+                                }
+                                catch { }
+                            }
 
                             DbUser.ChainBreaks = DbUser.ChainBreaks + 1;
 
@@ -362,21 +397,21 @@ namespace BigMohammadBot
 
                             try
                             {
-                                DeleteHelloChannel("<@!" + DbUser.DiscordUserId.ToInt64() + "> " + Reason + Result, dbChannel.DiscordChannelId.ToInt64());
+                                DeleteHelloChannel(ResponseChannel, "<@!" + DbUser.DiscordUserId.ToInt64() + "> " + Reason + Result, dbChannel.DiscordChannelId.ToInt64());
                                 dbChannel.Deleted = true;
-                                Globals.LogActivity(4, BreakerUser.Username + " " + Reason, "Iteration: " + State.HelloIteration + ", Message: " + Context.Message.Content, true);
+                                Globals.LogActivity(Context.Guild.Id, 4, BreakerUser.Username + " " + Reason, "Iteration: " + State.HelloIteration + ", Message: " + Context.Message.Content, true);
                             }
-                            catch (Exception e) { Globals.LogActivity(4, BreakerUser.Username + " " + Reason, "Iteration: " + State.HelloIteration + " Error: " + e.Message, false); }
+                            catch (Exception e) { Globals.LogActivity(Context.Guild.Id, 4, BreakerUser.Username + " " + Reason, "Iteration: " + State.HelloIteration + " Error: " + e.Message, false); }
 
                             try
                             {
-                                Globals.AwardChainKeeper(State.HelloIteration, UserId, Context.Guild, Context.Client);
-                                Globals.SetSuspendedUser(UserId, Context.Guild, Context.Client);
+                                Globals.AwardChainKeeper(ResponseChannel, State.HelloIteration, UserId, Context.Guild, Context.Client);
+                                Globals.SetSuspendedUser(ResponseChannel, UserId, Context.Guild, Context.Client);
                             }
                             catch (Exception e)
                             {
-                                Globals.LogActivity(1, "Automatic: Failed updating roles after break", "Error: " + e.Message, false);
-                                await (Context.Client.GetChannel(Globals.GeneralChannelId) as SocketTextChannel).SendMessageAsync("Failed to update roles.");
+                                Globals.LogActivity(Context.Guild.Id, 1, "Automatic: Failed updating roles after break", "Error: " + e.Message, false);
+                                await ResponseChannel.SendMessageAsync("Failed to update roles.");
                             }
 
                             if (State.AutoCreateNewHello)
@@ -386,16 +421,17 @@ namespace BigMohammadBot
                                     State.HelloIteration = State.HelloIteration + 1;
                                     var NewChannel = await Context.Guild.CreateTextChannelAsync("hello-chain-" + State.HelloIteration, x =>
                                     {
-                                        x.CategoryId = Globals.HelloCategoryId;
+                                        if (State.HelloCategoryId != null && State.HelloCategoryId.Length > 0)
+                                            x.CategoryId = State.HelloCategoryId.ToInt64();
                                         x.Topic = State.HelloTopic;
                                     });
-                                    State.HelloChannelId = await Globals.GetDbChannelId(NewChannel.Id, NewChannel.Name, 2);
+                                    State.HelloChannelId = await Globals.GetDbChannelId(Context.Guild.Id, NewChannel.Id, NewChannel.Name, 2);
                                     State.HelloDeleted = false;
                                     State.LastHelloUserId = 0;
                                     State.LastHelloMessage = DateTime.Now;
-                                    Globals.LogActivity(5, "Automatic: " + BreakerUser.Username + " " + Reason, NewChannel.Name, true);
+                                    Globals.LogActivity(Context.Guild.Id, 5, "Automatic: " + BreakerUser.Username + " " + Reason, NewChannel.Name, true);
                                 }
-                                catch (Exception e) { Globals.LogActivity(5, "Automatic: " + BreakerUser.Username + " " + Reason, "Iteration: " + State.HelloIteration + " Error: " + e.Message, false); }
+                                catch (Exception e) { Globals.LogActivity(Context.Guild.Id, 5, "Automatic: " + BreakerUser.Username + " " + Reason, "Iteration: " + State.HelloIteration + " Error: " + e.Message, false); }
                             }
                             else
                                 State.HelloDeleted = true;
@@ -410,7 +446,7 @@ namespace BigMohammadBot
                     }
                 }
             }
-            catch (Exception e) { Globals.LogActivity(1, "UpdateHelloChain", e.Message, false); }
+            catch (Exception e) { Globals.LogActivity(Context.Guild.Id, 1, "UpdateHelloChain", e.Message, false); }
         }
 
         ulong PickWinner(ulong id1, ulong id2, int input1, int input2)
@@ -436,36 +472,40 @@ namespace BigMohammadBot
                     var context = new SocketCommandContext(_client, msg);
                     if (!(msg.Channel is SocketDMChannel))
                     {
-                        var dbContext = new Database.DatabaseContext();
+                        var dbContext = await DbHelper.GetDbContext(context.Guild.Id);
                         var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
-                        if (context.Guild.Id == Globals.MohammadServerId) // only track statistics on one server (todo: guilds inside channels)
+                        if (AppState.EnableStatisticsTracking)
                             await UpdateSentMessages(context);
-                        if (!AppState.HelloDeleted.Value)
+                        if (AppState.EnableHelloChain && !AppState.HelloDeleted.Value)
                             await UpdateHelloChain(context, AppState);
                         await dbContext.SaveChangesAsync();
 
                         int argPos = 0;
 
                         string Message = msg.ToString();
-                        if (Message.Count(c => c == '$') > 1) // possibly contains emotes
+
+                        if (AppState.EnableEmotes)
                         {
-                            var AllEmotes = await dbContext.Emotes.AsAsyncEnumerable().ToListAsync();
-                            var Splits = Message.Split('$');
-                            for (int i = 1; i < Splits.Length - 1; i++) // skip the first and last splits
+                            if (Message.Count(c => c == '$') > 1) // possibly contains emotes
                             {
-                                string Split = Splits[i].Trim().ToLower();
-                                var FoundEmote = AllEmotes.Find(e => e.Name == Split);
-                                if (FoundEmote != null)
+                                var AllEmotes = await dbContext.Emotes.AsAsyncEnumerable().ToListAsync();
+                                var Splits = Message.Split('$');
+                                for (int i = 1; i < Splits.Length - 1; i++) // skip the first and last splits
                                 {
-                                    await context.Channel.SendMessageAsync(FoundEmote.Link);
-                                    break;
+                                    string Split = Splits[i].Trim().ToLower();
+                                    var FoundEmote = AllEmotes.Find(e => e.Name == Split);
+                                    if (FoundEmote != null)
+                                    {
+                                        await context.Channel.SendMessageAsync(FoundEmote.Link);
+                                        break;
+                                    }
                                 }
                             }
                         }
 
                         if (msg.HasCharPrefix(Globals.CommandPrefix, ref argPos))
                         {
-                            int UserId = await Globals.GetDbUserId(msg.Author);
+                            int UserId = await Globals.GetDbUserId(context.Guild.Id, msg.Author);
                             var result = await _commands.ExecuteAsync(context, argPos, null);
 
                             if (!result.IsSuccess)
@@ -473,14 +513,14 @@ namespace BigMohammadBot
                                 if (result.Error != CommandError.UnknownCommand)
                                 {
                                     await context.Channel.SendMessageAsync(result.ErrorReason);
-                                    Globals.LogActivity(6, msg.Content, result.ErrorReason, false, UserId);
+                                    Globals.LogActivity(context.Guild.Id, 6, msg.Content, result.ErrorReason, false, UserId);
                                 }
                                 else
                                 {
                                     try
                                     {
                                         bool FoundCommand = false;
-                                        if (Message.Length >= 6 && Message.Substring(0, 6) == Globals.CommandPrefix + "check")
+                                        if (AppState.EnableHelloChain && Message.Length >= 6 && Message.Substring(0, 6) == Globals.CommandPrefix + "check")
                                         {
                                             FoundCommand = true;
                                             if (Message.Length > 7)
@@ -498,41 +538,40 @@ namespace BigMohammadBot
                                         }
                                         else if (Message.Remove(0, 1).All(char.IsNumber))
                                         {
-                                            FoundCommand = true;
-                                            Int64 ParsedNumber = 0;
-                                            bool Parsed = Int64.TryParse(Message.Remove(0, 1), out ParsedNumber);
-                                            if (Parsed)
-                                            {
-                                                if (ParsedNumber > 1000000)
-                                                    await context.Channel.SendMessageAsync("THATS A LOTTA MONEY MATE");
-                                                else if (ParsedNumber > 1000)
-                                                    await context.Channel.SendMessageAsync("OK no need to flex on us");
-                                                else
-                                                    await context.Channel.SendMessageAsync("ok buddy");
-                                            }
-                                            else
-                                                await context.Channel.SendMessageAsync("ok relax thats too much");
+                                            //FoundCommand = true;
+                                            //Int64 ParsedNumber = 0;
+                                            //bool Parsed = Int64.TryParse(Message.Remove(0, 1), out ParsedNumber);
+                                            //if (Parsed)
+                                            //{
+                                            //    if (ParsedNumber > 1000000)
+                                            //        await context.Channel.SendMessageAsync("THATS A LOTTA MONEY MATE");
+                                            //    else if (ParsedNumber > 1000)
+                                            //        await context.Channel.SendMessageAsync("OK no need to flex on us");
+                                            //    else
+                                            //        await context.Channel.SendMessageAsync("ok buddy");
+                                            //}
+                                            //else
+                                            //    await context.Channel.SendMessageAsync("ok relax thats too much");
                                         }
 
                                         if (FoundCommand)
-                                            Globals.LogActivity(6, msg.Content, "", FoundCommand, UserId);
+                                            Globals.LogActivity(context.Guild.Id, 6, msg.Content, "", FoundCommand, UserId);
                                         //else
                                         //    await context.Channel.SendMessageAsync("Unknown command");
                                     }
                                     catch (Exception e)
                                     {
-                                        Globals.LogActivity(6, msg.Content, e.Message, false, UserId);
+                                        Globals.LogActivity(context.Guild.Id, 6, msg.Content, e.Message, false, UserId);
                                         await context.Channel.SendMessageAsync("Operation failed: " + e.Message);
                                     }
                                 }
                             }
                             else
-                                Globals.LogActivity(6, msg.Content, "", true, UserId);
+                                Globals.LogActivity(context.Guild.Id, 6, msg.Content, "", true, UserId);
                         }
                     }
                     else
                     {
-                        int UserId = await Globals.GetDbUserId(msg.Author);
                         try
                         {
                             if (msg.Content.Trim() == "rock" || msg.Content.Trim() == "scissors" || msg.Content.Trim() == "paper")
@@ -615,7 +654,7 @@ namespace BigMohammadBot
                                         var LastMessages = await DMChannel.GetMessagesAsync(2).Flatten().ToListAsync();
                                         if (LastMessages[1].Content.Split("<")[1][0] == '@')
                                         {
-                                            var SendingUser = await _client.Rest.GetGuildUserAsync(Globals.MohammadServerId, ulong.Parse(LastMessages[1].Content.Split("!")[1].Split(">")[0]));
+                                            var SendingUser = await _client.Rest.GetUserAsync(ulong.Parse(LastMessages[1].Content.Split("!")[1].Split(">")[0]));
                                             await SendingUser.SendMessageAsync(SendingMessage);
                                             var Beef = await _client.Rest.GetUserAsync(Globals.BeefBossId);
                                             await Beef.SendMessageAsync("Replied");
@@ -624,17 +663,14 @@ namespace BigMohammadBot
                                 }
                             }
                         }
-                        catch (Exception e) { Globals.LogActivity(1, "Processing DM", "Message: " + msg.Content + " Error: " + e.Message, false, UserId); }
+                        catch (Exception e) { /*Globals.LogActivity(1, "Processing DM", "Message: " + msg.Content + " Error: " + e.Message, false, UserId);*/ }
+                        // dm logging disabled for now because there is no 'central' db to store this log in
                     }
                 }
             }
 
         }
-
-
     }
-
-
 }
 
 

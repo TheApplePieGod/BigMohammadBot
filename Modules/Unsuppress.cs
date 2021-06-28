@@ -16,7 +16,7 @@ namespace BigMohammadBot.Modules
         public async Task Task1(string MentionedUser)
         {
             string FormattedId = new string(MentionedUser.Where(char.IsNumber).ToArray());
-            var User = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, ulong.Parse(FormattedId));
+            var User = await Context.Client.Rest.GetGuildUserAsync(Context.Guild.Id, ulong.Parse(FormattedId));
 
             if (User == null)
                 throw new Exception("User not found");
@@ -26,23 +26,30 @@ namespace BigMohammadBot.Modules
                 throw new Exception("You do not have permission to run that command");
             else
             {
-                var dbContext = new Database.DatabaseContext();
-                int UserId = await Globals.GetDbUserId(User);
-                var SuppressedUserRow = await dbContext.SupressedUsers.ToAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefaultAsync();
+                var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
+                var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
-                if (SuppressedUserRow != null)
-                    dbContext.SupressedUsers.Remove(SuppressedUserRow);
+                if (AppState.SuppressedRoleId != null && AppState.SuppressedRoleId.Length > 0)
+                {
+                    int UserId = await Globals.GetDbUserId(Context.Guild.Id, User);
+                    var SuppressedUserRow = await dbContext.SupressedUsers.ToAsyncEnumerable().Where(u => u.UserId == UserId).FirstOrDefaultAsync();
 
-                var SuppressRole = Context.Guild.GetRole(Globals.SuppressTextRoleId);
-                await User.RemoveRoleAsync(SuppressRole);
+                    if (SuppressedUserRow != null)
+                        dbContext.SupressedUsers.Remove(SuppressedUserRow);
 
-                await dbContext.SaveChangesAsync();
+                    var SuppressRole = Context.Guild.GetRole(AppState.SuppressedRoleId.ToInt64());
+                    await User.RemoveRoleAsync(SuppressRole);
 
-                //await Context.Message.DeleteAsync();
-                await ReplyAsync("<@!" + User.Id + "> has been unmuted.");
+                    await dbContext.SaveChangesAsync();
 
-                int CallingUserId = await Globals.GetDbUserId(Context.Message.Author);
-                Globals.LogActivity(2, "", User.Username + " has been unmuted.", true, CallingUserId);
+                    //await Context.Message.DeleteAsync();
+                    await ReplyAsync("<@!" + User.Id + "> has been unmuted.");
+
+                    int CallingUserId = await Globals.GetDbUserId(Context.Guild.Id, Context.Message.Author);
+                    Globals.LogActivity(Context.Guild.Id, 2, "", User.Username + " has been unmuted.", true, CallingUserId);
+                }
+                else
+                    await ReplyAsync("This feature has not been set up yet");
             }
         }
     }

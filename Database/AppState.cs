@@ -29,5 +29,23 @@ namespace BigMohammadBot.Database
         [Required]
         public string HelloTopic { get; set; }
         public int JoinMuteMinutes { get; set; }
+        [MaxLength(8)]
+        public byte[] ResponseChannelId { get; set; }
+        [MaxLength(8)]
+        public byte[] HelloCategoryId { get; set; }
+        [MaxLength(8)]
+        public byte[] ChainBreakerRoleId { get; set; }
+        [MaxLength(8)]
+        public byte[] ChainKeeperRoleId { get; set; }
+        [MaxLength(8)]
+        public byte[] SuppressedRoleId { get; set; }
+        [MaxLength(8)]
+        public byte[] SuspendedRoleId { get; set; }
+        [MaxLength(8)]
+        public byte[] JoinAutoRoleId { get; set; }
+        public bool EnableHelloChain { get; set; }
+        public bool EnableStatisticsTracking { get; set; }
+        public bool EnableMeCommand { get; set; }
+        public bool EnableEmotes { get; set; }
     }
 }

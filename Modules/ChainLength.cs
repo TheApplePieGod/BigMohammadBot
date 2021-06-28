@@ -18,7 +18,7 @@ namespace BigMohammadBot.Modules
         [Command("chainlength")]
         public async Task Task1(int iteration = 0)
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
             var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
             int realIteration = iteration == 0 ? AppState.HelloIteration : iteration;
@@ -40,7 +40,11 @@ namespace BigMohammadBot.Modules
         [Command("chains")]
         public async Task Task2()
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
+
+            if (!AppState.EnableHelloChain)
+                throw new Exception("The [Hello Chain] feature is not enabled");
 
             var Count = await dbContext.IterationCountModel.FromSqlRaw(@"select * from udf_GetIterationMessageCount(@iteration)",
                 new SqlParameter("@iteration", Convert.ToInt32(0))

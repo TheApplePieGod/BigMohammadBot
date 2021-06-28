@@ -10,7 +10,7 @@ using Discord.Commands;
 using Microsoft.Data.SqlClient;
 using Discord;
 
-
+// REFACTOR
 namespace BigMohammadBot
 {
     public static class Globals
@@ -20,31 +20,13 @@ namespace BigMohammadBot
 
 #if (DEBUG)
         public static readonly char CommandPrefix = '?';
-        public static readonly ulong ChainBreakerRoleId = 755873753464045661;
-        public static readonly ulong ChainKeeperRoleId = 757792415179472896;
-        public static readonly ulong SuppressTextRoleId = 385580495498641409;
-        public static readonly ulong SuspendedRoleId = 783933452733906954;
-        public static readonly ulong GeneralChannelId = 364208021171339267;
-        public static readonly ulong VotingChannelId = 799741564301737995;
-        public static readonly ulong DefaultCategoryId = 364208021171339266;
-        public static readonly ulong HelloCategoryId = 783933747711180800;
-        public static readonly ulong MohammadServerId = 364208021171339265;
 #else
         public static readonly char CommandPrefix = '$';
-        public static readonly ulong ChainBreakerRoleId = 755845913460867132;
-        public static readonly ulong ChainKeeperRoleId = 761208468320550952;
-        public static readonly ulong SuppressTextRoleId = 757805274206568558;
-        public static readonly ulong SuspendedRoleId = 783932971480252416;
-        public static readonly ulong GeneralChannelId = 619209478973292547;
-        public static readonly ulong VotingChannelId = 799741511448657940;
-        public static readonly ulong DefaultCategoryId = 619209478973292546;
-        public static readonly ulong HelloCategoryId = 785595959857774633;
-        public static readonly ulong MohammadServerId = 619209478973292545;
 #endif
 
         public static readonly List<string> LoggingIgnoredCommands = new List<string> { CommandPrefix + "greeting" };
 
-        public static async void LogActivity(int ActivityType, string Information, string ResultText, bool Success, int CallingUserId = 0)
+        public static async void LogActivity(ulong ClientIdentifier, int ActivityType, string Information, string ResultText, bool Success, int CallingUserId = 0)
         {
             foreach (string Ignored in LoggingIgnoredCommands)
             {
@@ -52,7 +34,7 @@ namespace BigMohammadBot
                     return;
             }
 
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            Database.DatabaseContext dbContext = await DbHelper.GetDbContext(ClientIdentifier);
 
             Database.ActivityLog Entry = new Database.ActivityLog();
             Entry.TypeId = ActivityType;
@@ -66,10 +48,14 @@ namespace BigMohammadBot
             await dbContext.SaveChangesAsync();
         }
 
-        public static async Task<int> GetDbUserId(IUser User)
+        public static async Task<int> GetDbUserId(ulong ClientIdentifier, IUser User)
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            Database.DatabaseContext dbContext = await DbHelper.GetDbContext(ClientIdentifier);
+            return await GetDbUserId(dbContext, ClientIdentifier, User);
+        }
 
+        public static async Task<int> GetDbUserId(Database.DatabaseContext dbContext, ulong ClientIdentifier, IUser User)
+        {
             var DbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.DiscordUserId.ToInt64() == User.Id).FirstOrDefaultAsync();
             if (DbUser == null)
             {
@@ -93,7 +79,7 @@ namespace BigMohammadBot
 
         public static async Task<int> GetDbChannelId(SocketGuildChannel Channel, bool SkipUpdate = false)
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Channel.Guild.Id);
 
             var DbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(u => u.DiscordChannelId.ToInt64() == Channel.Id).FirstOrDefaultAsync();
             if (DbChannel == null)
@@ -121,9 +107,9 @@ namespace BigMohammadBot
             }
         }
 
-        public static async Task<int> GetDbChannelId(ulong ChannelId, string ChannelName, int Type, bool SkipUpdate = false)
+        public static async Task<int> GetDbChannelId(ulong ClientIdentifier, ulong ChannelId, string ChannelName, int Type, bool SkipUpdate = false)
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            Database.DatabaseContext dbContext = await DbHelper.GetDbContext(ClientIdentifier);
 
             var DbChannel = await dbContext.Channels.ToAsyncEnumerable().Where(u => u.DiscordChannelId.ToInt64() == ChannelId).FirstOrDefaultAsync();
             if (DbChannel == null)
@@ -151,9 +137,9 @@ namespace BigMohammadBot
             }
         }
 
-        public static async void AwardChainKeeper(int Iteration, int BreakerUserId, SocketGuild Guild, DiscordSocketClient Client) //todo: log
+        public static async void AwardChainKeeper(SocketTextChannel ResponseChannel, int Iteration, int BreakerUserId, SocketGuild Guild, DiscordSocketClient Client) //todo: log
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Guild.Id);
             var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
             var MessageCounts = await dbContext.HelloMessageCountModel.FromSqlRaw(@"select * from udf_GetHelloMessageCount(@iteration, @alliterations, @userid, @allusers) order by NumMessages desc",
                     new SqlParameter("@iteration", Iteration),
@@ -172,23 +158,32 @@ namespace BigMohammadBot
 
                 if (AwardingId != 0)
                 {
-                    var KeeperRole = Guild.GetRole(ChainKeeperRoleId);
+                    bool RoleEnabled = AppState.ChainKeeperRoleId != null && AppState.ChainKeeperRoleId.Length > 0;
+
                     var RemovingdbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == AppState.KeeperUserId).FirstOrDefaultAsync();
                     if (RemovingdbUser != null)
                     {
-                        var User = await Client.Rest.GetGuildUserAsync(Guild.Id, RemovingdbUser.DiscordUserId.ToInt64());
-                        await User.RemoveRoleAsync(KeeperRole);
-                        AppState.KeeperUserId = 0;
+                        if (RoleEnabled)
+                        {
+                            var KeeperRole = Guild.GetRole(AppState.ChainKeeperRoleId.ToInt64());
+                            var User = await Client.Rest.GetGuildUserAsync(Guild.Id, RemovingdbUser.DiscordUserId.ToInt64());
+                            await User.RemoveRoleAsync(KeeperRole);
+                            AppState.KeeperUserId = 0;
+                        }
                     }
 
                     var dbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == AwardingId).FirstOrDefaultAsync();
                     if (dbUser != null)
                     {
-                        var User = await Client.Rest.GetGuildUserAsync(Guild.Id, dbUser.DiscordUserId.ToInt64());
-                        await User.AddRoleAsync(KeeperRole);
-
-                        var GeneralChannel = Guild.GetChannel(GeneralChannelId) as SocketTextChannel;
-                        await GeneralChannel.SendMessageAsync("<@!" + dbUser.DiscordUserId.ToInt64() + "> has been awarded <@&" + ChainKeeperRoleId + ">");
+                        if (RoleEnabled)
+                        {
+                            var KeeperRole = Guild.GetRole(AppState.ChainKeeperRoleId.ToInt64());
+                            var User = await Client.Rest.GetGuildUserAsync(Guild.Id, dbUser.DiscordUserId.ToInt64());
+                            await User.AddRoleAsync(KeeperRole);
+                            await ResponseChannel.SendMessageAsync("<@!" + dbUser.DiscordUserId.ToInt64() + "> has been awarded <@&" + AppState.ChainKeeperRoleId.ToInt64() + ">");
+                        }
+                        else
+                            await ResponseChannel.SendMessageAsync("<@!" + dbUser.DiscordUserId.ToInt64() + "> has been awarded [Keeper of the Chain]");
 
                         AppState.KeeperUserId = AwardingId;
                         dbUser.AmountKeeper++;
@@ -199,42 +194,45 @@ namespace BigMohammadBot
             }
         }
 
-        public static async void SetSuspendedUser(int NewUserId, SocketGuild Guild, DiscordSocketClient Client) //todo: log
+        public static async void SetSuspendedUser(SocketTextChannel ResponseChannel, int NewUserId, SocketGuild Guild, DiscordSocketClient Client) //todo: log
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Guild.Id);
             var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
 
             if (AppState.SuspendedUserId == NewUserId)
                 return;
 
-            var SuspendedRole = Guild.GetRole(SuspendedRoleId);
-            if (AppState.SuspendedUserId != 0)
+            bool RoleEnabled = AppState.SuspendedRoleId != null && AppState.SuspendedRoleId.Length > 0;
+            if (RoleEnabled)
             {
-                var RemovingdbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == AppState.SuspendedUserId).FirstOrDefaultAsync();
-                if (RemovingdbUser != null)
+                var SuspendedRole = Guild.GetRole(AppState.SuspendedRoleId.ToInt64());
+                if (AppState.SuspendedUserId != 0)
                 {
-                    var User = await Client.Rest.GetGuildUserAsync(Guild.Id, RemovingdbUser.DiscordUserId.ToInt64());
-                    await User.RemoveRoleAsync(SuspendedRole);
-                    AppState.SuspendedUserId = 0;
+                    var RemovingdbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == AppState.SuspendedUserId).FirstOrDefaultAsync();
+                    if (RemovingdbUser != null)
+                    {
+                        var User = await Client.Rest.GetGuildUserAsync(Guild.Id, RemovingdbUser.DiscordUserId.ToInt64());
+                        await User.RemoveRoleAsync(SuspendedRole);
+                        AppState.SuspendedUserId = 0;
+                    }
                 }
-            }
 
-            if (NewUserId != 0)
-            {
-                var dbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == NewUserId).FirstOrDefaultAsync();
-                if (dbUser != null)
+                if (NewUserId != 0)
                 {
-                    var User = await Client.Rest.GetGuildUserAsync(Guild.Id, dbUser.DiscordUserId.ToInt64());
-                    await User.AddRoleAsync(SuspendedRole);
+                    var dbUser = await dbContext.Users.ToAsyncEnumerable().Where(u => u.Id == NewUserId).FirstOrDefaultAsync();
+                    if (dbUser != null)
+                    {
+                        var User = await Client.Rest.GetGuildUserAsync(Guild.Id, dbUser.DiscordUserId.ToInt64());
+                        await User.AddRoleAsync(SuspendedRole);
 
-                    var GeneralChannel = Guild.GetChannel(GeneralChannelId) as SocketTextChannel;
-                    await GeneralChannel.SendMessageAsync("<@!" + dbUser.DiscordUserId.ToInt64() + "> has been suspended from the new chain.");
+                        await ResponseChannel.SendMessageAsync("<@!" + dbUser.DiscordUserId.ToInt64() + "> has been suspended from the new chain.");
 
-                    AppState.SuspendedUserId = NewUserId;
+                        AppState.SuspendedUserId = NewUserId;
+                    }
                 }
-            }
 
-            await dbContext.SaveChangesAsync();
+                await dbContext.SaveChangesAsync();
+            }
         }
     }
 }

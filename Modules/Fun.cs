@@ -33,6 +33,12 @@ namespace BigMohammadBot.Modules
         [Command("greeting")]
         public async Task Task1(int Amount = 1)
         {
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
+
+            if (!AppState.EnableHelloChain)
+                throw new Exception("The [Hello Chain] feature is not enabled");
+
             if (Amount == 0)
                 throw new Exception("Amount cannot be zero");
             if (Amount > 10)

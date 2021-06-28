@@ -64,7 +64,7 @@ namespace BigMohammadBot.Modules
                     if (i != NumWeeks - 1)
                         Labels += ", ";
 
-                    ReportReturn ReportData = await Report.ReportRange(StartingWeek.ToString(), StartingWeek.ToString());
+                    ReportReturn ReportData = await Report.ReportRange(Context.Guild.Id, StartingWeek.ToString(), StartingWeek.ToString());
 
                     List<string> AllKeys = new List<string>(DataValues.Keys);
                     foreach (UserPercent stat in ReportData.PercentageList)

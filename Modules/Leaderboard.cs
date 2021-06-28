@@ -18,7 +18,11 @@ namespace BigMohammadBot.Modules
         [Command("top")]
         public async Task Task1()
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
+
+            if (!AppState.EnableHelloChain)
+                throw new Exception("The [Hello Chain] feature is not enabled");
 
             var Results = await dbContext.HelloMessageCountModel.FromSqlRaw(@"select UserId, 0 as Iteration, SUM(NumMessages) as NumMessages from udf_GetHelloMessageCount(@iteration, @alliterations, @userid, @allusers)
                                                                               group by UserId
@@ -54,8 +58,11 @@ namespace BigMohammadBot.Modules
         [Command("now")]
         public async Task Task2()
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
             var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
+
+            if (!AppState.EnableHelloChain)
+                throw new Exception("The [Hello Chain] feature is not enabled");
 
             var Results = await dbContext.HelloMessageCountModel.FromSqlRaw(@"select * from udf_GetHelloMessageCount(@iteration, @alliterations, @userid, @allusers) order by NumMessages desc",
                 new SqlParameter("@iteration", AppState.HelloIteration),

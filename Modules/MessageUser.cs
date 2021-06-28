@@ -16,7 +16,7 @@ namespace BigMohammadBot.Modules
         {
             if (Globals.AdminUserIds.Contains(Context.Message.Author.Id)) // admin command
             {
-                var User = await Context.Client.Rest.GetGuildUserAsync(Globals.MohammadServerId, ReplyingUser);
+                var User = await Context.Client.Rest.GetUserAsync(ReplyingUser);
                 await User.SendMessageAsync(Message);
                 await ReplyAsync("Sent");
             }

@@ -1,43 +1,8 @@
 ```ini
-V2.6
+V3.0
 -----
-- Added the $greeting command
-
-V2.5
------
-- Updated various permissions and the $purge command
-
-V2.4
------
-- Added the $emotes command
-
-V2.3
------
-- Added the $reportchart command
-
-V2.2
------
-- Added the $now and $top command
-
-V2.1
------
-- Users are muted for 24 hrs upon join
-
-V2.0
------
-- Added $breakers, $keepers, and $chains commands
-- Added $me command
-- Added weekly statistics recording and related commands
-- $report and $stats now shows data from the previous week
-- Changed $break to $breakchain
-- Modified $unsuspend command
-
-V1.9
------
-- Added the $chainlength command
-- Added a one-chain suspension (and all of its relevant features) to users who break the chain
-- Removed 'Unknown command' message
-- Added some more logging for better chain break tracking
-- Moved all future hello chains into their own category so users can now set notification preferences
-- Temporarily disabled the $stats command
+- Updated naming of 'denylist'
+- Added multi server support
+- Added the $setfield and $feature commands
+- Added auto roles on join
 ```

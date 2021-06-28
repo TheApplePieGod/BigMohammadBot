@@ -32,40 +32,6 @@ namespace BigMohammadBot
             //Globals.dbContext = new Database.DatabaseContext();
             //var d = Globals.dbContext.ChangeTracker;
 
-            // DBUP
-            string dbConnectionString = "";
-            var assembly = Assembly.GetExecutingAssembly();
-            var DbStringFile = "BigMohammadBot.Data.DbString.txt";
-
-#if (DEBUG)
-            dbConnectionString = "Server=.\\SQLEXPRESS;Database=BigMohammadBot;Trusted_Connection=True;";
-#else
-            using (Stream stream = assembly.GetManifestResourceStream(DbStringFile))
-            using (StreamReader reader = new StreamReader(stream))
-                dbConnectionString = reader.ReadToEnd().Trim();
-#endif
-
-			EnsureDatabase.For.SqlDatabase(dbConnectionString);
-			Task.Delay(1000).Wait();
-
-			var upgradeEngine = DeployChanges.To
-				.SqlDatabase(dbConnectionString)
-				.WithScriptsAndCodeEmbeddedInAssembly(assembly, (string s) => s.StartsWith("BigMohammadBot.Migrations.Script"))
-				.WithTransactionPerScript()
-				.WithExecutionTimeout(TimeSpan.FromMilliseconds(30000))
-				.LogToConsole()
-				.Build();
-
-			if (upgradeEngine.IsUpgradeRequired())
-			{
-				var result = upgradeEngine.PerformUpgrade();
-
-				if (!result.Successful)
-				{
-					throw result.Error;
-				}
-			}
-
 			_client = new DiscordSocketClient(new DiscordSocketConfig
             {
                 AlwaysDownloadUsers = true,
@@ -75,7 +41,7 @@ namespace BigMohammadBot
             _client.Log += OnLogAsync;
 
             var CredentialFile = "BigMohammadBot.Data.BotCredential.txt";
-
+            var assembly = Assembly.GetExecutingAssembly();
             using (Stream stream = assembly.GetManifestResourceStream(CredentialFile))
             using (StreamReader reader = new StreamReader(stream))
                 await _client.LoginAsync(TokenType.Bot, reader.ReadToEnd().Trim());

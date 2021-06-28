@@ -25,6 +25,8 @@
     <None Remove="Migrations\Script0001 - InitialMigration.sql" />
     <None Remove="Migrations\Script0002 - udf_GetUserActivity.sql" />
     <None Remove="Migrations\Script0003 - Emote table.sql" />
+    <None Remove="Migrations\Script0004 - AppState table modification.sql" />
+    <None Remove="Migrations\Script0005 - ReactionRoles table.sql" />
   </ItemGroup>
 
   <ItemGroup>
@@ -38,6 +40,8 @@
     <EmbeddedResource Include="Data\Words.txt">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </EmbeddedResource>
+    <EmbeddedResource Include="Migrations\Script0005 - ReactionRoles table.sql" />
+    <EmbeddedResource Include="Migrations\Script0004 - AppState table modification.sql" />
     <EmbeddedResource Include="Migrations\Script0003 - Emote table.sql" />
     <EmbeddedResource Include="Migrations\Script0002 - udf_GetUserActivity.sql" />
     <EmbeddedResource Include="Migrations\Script0001 - InitialMigration.sql" />
@@ -63,7 +67,7 @@
   <Target Name="AddPayloadsFolder" AfterTargets="Publish">
     <Exec Command="xcopy &quot;$(SolutionDir)bin\Debug\netcoreapp3.1\libsodium.dll&quot; &quot;$(PublishDir)&quot; /Y /I" />
     <Exec Command="xcopy &quot;$(SolutionDir)bin\Debug\netcoreapp3.1\opus.dll&quot; &quot;$(PublishDir)&quot; /Y /I" />
-    <Exec Command="mkdir &quot;$(PublishDir)\Recordings&quot;" />
+    <!--<Exec Command="mkdir &quot;$(PublishDir)\Recordings&quot;" />-->
   </Target>
 
   <PropertyGroup>

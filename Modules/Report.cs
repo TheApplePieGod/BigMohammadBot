@@ -28,11 +28,13 @@ namespace BigMohammadBot.Modules
     }
     public class Report : ModuleBase<SocketCommandContext>
     {
-        
-
-        public static async Task<ReportReturn> ReportRange(string Bottom, string Top)
+        public static async Task<ReportReturn> ReportRange(ulong ClientIdentifier, string Bottom, string Top)
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(ClientIdentifier);
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
+
+            if (!AppState.EnableStatisticsTracking)
+                throw new Exception("The [Statistics Tracking] feature is not enabled");
 
             int TotalMessages = 0;
             int TotalSecondsInVoice = 0;
@@ -117,7 +119,7 @@ namespace BigMohammadBot.Modules
             else
             {
                 DateTime LastWeekDate = DateTime.Today.AddDays(-((int)DateTime.Today.DayOfWeek + 7) + (int)DayOfWeek.Monday);
-                ReportReturn ReportData = await ReportRange(LastWeekDate.ToString(), LastWeekDate.ToString());
+                ReportReturn ReportData = await ReportRange(Context.Guild.Id, LastWeekDate.ToString(), LastWeekDate.ToString());
                 if (ReportData.Data == "")
                     await ReplyAsync("No data to report from last week");
                 else
@@ -134,7 +136,7 @@ namespace BigMohammadBot.Modules
             else
             {
                 DateTime ThisWeekDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek + (int)DayOfWeek.Monday);
-                ReportReturn ReportData = await ReportRange(ThisWeekDate.ToString(), ThisWeekDate.ToString());
+                ReportReturn ReportData = await ReportRange(Context.Guild.Id, ThisWeekDate.ToString(), ThisWeekDate.ToString());
                 if (ReportData.Data == "")
                     await ReplyAsync("No data to report from this week");
                 else
@@ -150,7 +152,7 @@ namespace BigMohammadBot.Modules
                 throw new Exception("You do not have permission to run that command");
             else
             {
-                ReportReturn ReportData = await ReportRange("", "");
+                ReportReturn ReportData = await ReportRange(Context.Guild.Id, "", "");
                 if (ReportData.Data == "")
                     await ReplyAsync("No data to report");
                 else

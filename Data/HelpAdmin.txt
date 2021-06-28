@@ -17,12 +17,18 @@
 [$purge (num)]
 - Deletes last num messages + this one
 
-[$blacklist (add/remove) (#channel)]
-- Adds/removes channel from the statistics blacklist
+[$denylist (add/remove) (#channel)]
+- Adds/removes channel from the statistics deny list
 
-[$blacklist list]
-- Lists all channels in the blacklist
+[$denylist list]
+- Lists all channels in the deny list
 
 [$emotes list]
 - Lists all created emotes
+
+[$feature (featurename) (true/false)]
+- Enables/disables the specified Big Mo feature
+
+[$setfield (field) (value)]
+- Sets the value of the specified field
 ```

@@ -23,7 +23,11 @@ namespace BigMohammadBot.Modules
 
         public async Task<StatsReturn> GetStatsFromRange(string Bottom, string Top)
         {
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
+
+            if (!AppState.EnableStatisticsTracking)
+                throw new Exception("The [Statistics Tracking] feature is not enabled");
 
             string MessagesString = "";
             var AllUserTotalMessages = await dbContext.UserTotalMessagesModel.FromSqlRaw(@"select * from udf_GetUserTotalMessages(@userid, @allusers, @timebottom, @timetop) order by TotalMessages desc",

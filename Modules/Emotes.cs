@@ -16,8 +16,13 @@ namespace BigMohammadBot.Modules
         public async Task Task1(string Operation = "", string Name = "", string Link = "")
         {
             var GuildUser = Context.Guild.GetUser(Context.User.Id);
-            Database.DatabaseContext dbContext = new Database.DatabaseContext();
-            int CallingUserId = await Globals.GetDbUserId(Context.Message.Author);
+            var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
+            var AppState = await dbContext.AppStates.AsAsyncEnumerable().FirstOrDefaultAsync();
+
+            if (!AppState.EnableEmotes)
+                throw new Exception("The [Emotes] feature is not enabled");
+
+            int CallingUserId = await Globals.GetDbUserId(Context.Guild.Id, Context.Message.Author);
 
             Name = Name.Trim().ToLower();
             Link = Link.Trim();
@@ -54,11 +59,11 @@ namespace BigMohammadBot.Modules
                         dbContext.Emotes.Add(NewRow);
                         await dbContext.SaveChangesAsync();
                         await ReplyAsync("Successfully created emote $" + Name + "$");
-                        Globals.LogActivity(10, Name, "", true, CallingUserId);
+                        Globals.LogActivity(Context.Guild.Id, 10, Name, "", true, CallingUserId);
                     }
                     catch (Exception e)
                     {
-                        Globals.LogActivity(10, Name, e.Message, false, CallingUserId);
+                        Globals.LogActivity(Context.Guild.Id, 10, Name, e.Message, false, CallingUserId);
                         throw new Exception("Operation failed: " + e.Message);
                     }
                 }
@@ -82,11 +87,11 @@ namespace BigMohammadBot.Modules
                         dbContext.Emotes.Remove(ExistingEmote);
                         await dbContext.SaveChangesAsync();
                         await ReplyAsync("Successfully removed emote $" + Name + "$");
-                        Globals.LogActivity(11, Name, "", true, CallingUserId);
+                        Globals.LogActivity(Context.Guild.Id, 11, Name, "", true, CallingUserId);
                     }
                     catch (Exception e)
                     {
-                        Globals.LogActivity(11, Name, e.Message, false, CallingUserId);
+                        Globals.LogActivity(Context.Guild.Id, 11, Name, e.Message, false, CallingUserId);
                         throw new Exception("Operation failed: " + e.Message);
                     }
                 }         

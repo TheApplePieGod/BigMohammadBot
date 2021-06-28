@@ -20,7 +20,7 @@ namespace BigMohammadBot.Modules
         {
             if (Globals.AdminUserIds.Contains(Context.Message.Author.Id) && count < 50) // admin command
             {
-                Database.DatabaseContext dbContext = new Database.DatabaseContext();
+                var dbContext = await DbHelper.GetDbContext(Context.Guild.Id);
 
                 var embed = new EmbedBuilder
                 {
