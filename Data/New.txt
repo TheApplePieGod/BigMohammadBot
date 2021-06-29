@@ -1,4 +1,8 @@
 ```ini
+V3.1
+-----
+- Added $reactionroles command
+
 V3.0
 -----
 - Updated naming of 'denylist'

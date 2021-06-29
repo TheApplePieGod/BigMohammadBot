@@ -8,19 +8,15 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BigMohammadBot.Database
 {
-    public partial class Emote
+    public partial class ReactionRoleEmote
     {
         [Key]
         public int Id { get; set; }
+        public int ReactionRoleId { get; set; }
         [Required]
-        [StringLength(300)]
-        public string Link { get; set; }
+        public string Emote { get; set; }
         [Required]
-        [StringLength(25)]
-        public string Name { get; set; }
-        [Column(TypeName = "datetime")]
-        public DateTime Created { get; set; }
-        [Column(TypeName = "datetime")]
-        public DateTime? LastUsed { get; set; }
+        [MaxLength(8)]
+        public byte[] RoleId { get; set; }
     }
 }

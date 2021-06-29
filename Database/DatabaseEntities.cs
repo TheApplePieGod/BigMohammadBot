@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
 
@@ -26,6 +26,8 @@ namespace BigMohammadBot.Database
         public virtual DbSet<Emote> Emotes { get; set; }
         public virtual DbSet<Greeting> Greetings { get; set; }
         public virtual DbSet<MessageStatistic> MessageStatistics { get; set; }
+        public virtual DbSet<ReactionRole> ReactionRoles { get; set; }
+        public virtual DbSet<ReactionRoleEmote> ReactionRoleEmotes { get; set; }
         public virtual DbSet<SchemaVersion> SchemaVersions { get; set; }
         public virtual DbSet<SupressedUser> SupressedUsers { get; set; }
         public virtual DbSet<User> Users { get; set; }
@@ -87,6 +89,11 @@ namespace BigMohammadBot.Database
             modelBuilder.Entity<Greeting>(entity =>
             {
                 entity.Property(e => e.Greeting1).IsUnicode(false);
+            });
+
+            modelBuilder.Entity<ReactionRoleEmote>(entity =>
+            {
+                entity.Property(e => e.Emote).IsUnicode(true);
             });
 
             modelBuilder.Entity<User>(entity =>

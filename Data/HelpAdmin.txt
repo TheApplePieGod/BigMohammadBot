@@ -31,4 +31,7 @@
 
 [$setfield (field) (value)]
 - Sets the value of the specified field
+
+[$reactionroles (#channel) (messageId) (emote) (@role) (emote) (@role) ...]
+- Sets up reaction roles on the specified message
 ```

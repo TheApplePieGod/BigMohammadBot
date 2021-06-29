@@ -51,12 +51,62 @@ namespace BigMohammadBot
 
         public async Task OnReactionAdded(Cacheable<IUserMessage, ulong> Message, ISocketMessageChannel Channel, SocketReaction Reaction)
         {
+            if (!Reaction.User.IsSpecified || Reaction.User.Value.IsBot)
+                return;
 
+            var GuildChannel = Channel as SocketGuildChannel;
+            if (GuildChannel.Guild == null)
+                return;
+
+            var dbContext = await DbHelper.GetDbContext(GuildChannel.Guild.Id);
+
+            var FoundMessage = await dbContext.ReactionRoles.AsAsyncEnumerable().Where(e => e.MessageId.ToInt64() == Message.Id).FirstOrDefaultAsync();
+            if (FoundMessage != null)
+            {
+                var Emote = Reaction.Emote as Emote;
+                string EmoteName = Reaction.Emote.Name;
+                if (Emote != null)
+                    EmoteName = "<:" + Emote.Name + ":" + Emote.Id + ">";
+
+                var FoundEmote = await dbContext.ReactionRoleEmotes.AsAsyncEnumerable().Where(e => e.ReactionRoleId == FoundMessage.Id && e.Emote == EmoteName).FirstOrDefaultAsync();
+                if (FoundEmote != null)
+                {
+                    var Role = GuildChannel.Guild.GetRole(FoundEmote.RoleId.ToInt64());
+                    var User = GuildChannel.Guild.GetUser(Reaction.UserId);
+                    if (Role != null && User != null)
+                        await User.AddRoleAsync(Role);
+                }
+            }
         }
 
         public async Task OnReactionRemoved(Cacheable<IUserMessage, ulong> Message, ISocketMessageChannel Channel, SocketReaction Reaction)
         {
+            if (!Reaction.User.IsSpecified || Reaction.User.Value.IsBot)
+                return;
 
+            var GuildChannel = Channel as SocketGuildChannel;
+            if (GuildChannel.Guild == null)
+                return;
+
+            var dbContext = await DbHelper.GetDbContext(GuildChannel.Guild.Id);
+
+            var FoundMessage = await dbContext.ReactionRoles.AsAsyncEnumerable().Where(e => e.MessageId.ToInt64() == Message.Id).FirstOrDefaultAsync();
+            if (FoundMessage != null)
+            {
+                var Emote = Reaction.Emote as Emote;
+                string EmoteName = Reaction.Emote.Name;
+                if (Emote != null)
+                    EmoteName = "<:" + Emote.Name + ":" + Emote.Id + ">";
+
+                var FoundEmote = await dbContext.ReactionRoleEmotes.AsAsyncEnumerable().Where(e => e.ReactionRoleId == FoundMessage.Id && e.Emote == EmoteName).FirstOrDefaultAsync();
+                if (FoundEmote != null)
+                {
+                    var Role = GuildChannel.Guild.GetRole(FoundEmote.RoleId.ToInt64());
+                    var User = GuildChannel.Guild.GetUser(Reaction.UserId);
+                    if (Role != null && User != null)
+                        await User.RemoveRoleAsync(Role);
+                }
+            }
         }
 
         public async Task OnMessageDeleted(Cacheable<IMessage, ulong> Message, ISocketMessageChannel Channel)
@@ -66,8 +116,12 @@ namespace BigMohammadBot
             {
                 var dbContext = await DbHelper.GetDbContext(GuildChannel.Guild.Id);
 
-                //var ReactionRoles = await dbContext.
-                //foreach (var elem in dbContext.)
+                var FoundMessage = await dbContext.ReactionRoles.AsAsyncEnumerable().Where(e => e.MessageId.ToInt64() == Message.Id).FirstOrDefaultAsync();
+                if (FoundMessage != null)
+                {
+                    FoundMessage.Deleted = true;
+                    await dbContext.SaveChangesAsync();
+                }
             }
         }
 
